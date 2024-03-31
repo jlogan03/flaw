@@ -1,0 +1,23 @@
+[package]
+name = "flaw"
+version = "0.1.0"
+edition = "2021"
+authors = ["James Logan <jlogan03@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/jlogan03/flaw/"
+homepage = "https://github.com/jlogan03/flaw/flaw"
+description = "Control-law-inspired embedded signal filtering, no-std and no-alloc compatible."
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+interpn = { version = "^0.4.2", default-features = false }
+num-traits = { version = "0.2.16", default-features = false, features = ["libm"] }
+
+[features]
+default = []
+std = []
+
+[lints.rust]
+unsafe_code = "forbid"
