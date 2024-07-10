@@ -17,8 +17,8 @@ pub const MAX_CUTOFF_RATIO: f64 = 0.4;
 /// Cutoff ratio is the dimensionless ratio of the cutoff frequency to the sampling frequency.
 /// Region of validity: cutoff ratio from 1.00e-02 to 4.00e-01
 pub fn butter3(cutoff_ratio: f64) -> Result<SisoIirFilter<3>, &'static str> {
-    let avals = &[&AVALS[0][..], &AVALS[1][..], &AVALS[2][..], ];
-    let cvals = &[&CVALS[0][..], &CVALS[1][..], &CVALS[2][..], ];
+    let avals = &[&AVALS[0][..], &AVALS[1][..], &AVALS[2][..]];
+    let cvals = &[&CVALS[0][..], &CVALS[1][..], &CVALS[2][..]];
     SisoIirFilter::new_interpolated(cutoff_ratio, &LOG10_CUTOFF_RATIOS, avals, cvals, &DVALS)
 }
 
