@@ -189,7 +189,9 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
         }
     }
 
-    /// Build a new low-pass with coefficients interpolated on baked tables
+    /// Build a new low-pass with coefficients interpolated on baked tables.
+    /// After interpolation, the `C` vector is scaled by a (hopefully) small
+    /// amount to more closely produce unity steady-state gain.
     pub fn new_interpolated(
         cutoff_ratio: f64,
         log10_cutoff_ratio_grid: &[f64],

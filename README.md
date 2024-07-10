@@ -42,7 +42,7 @@ or fully-featured.
 
 Tabulated filters are tested to enforce
 
-* <0.1% error in converged step response at the minimum cutoff frequency
+* <0.01% error in converged step response at the minimum cutoff frequency
 * <1ppm error in converged step response at the maximum cutoff frequency
 * <5% error to -3dB attenuation of a sine input at the cutoff frequency at the maximum cutoff ratio
   * This error appears to be mainly an issue of discretization in test cases, and could be reduced
@@ -64,12 +64,12 @@ which are the result of a bilinear transform of the transfer function polynomial
 
 | Filter | Min. Cutoff Ratio | Max. Cutoff Ratio |
 |--------|-------------------|-------------------|
-| Butter1| 10^-5             | 0.4               |
+| Butter1| 10^-4             | 0.4               |
 | Butter2| 10^-3             | 0.4               |
-| Butter3| 10^-2.25 (~0.006) | 0.4               |
+| Butter3| 10^-2             | 0.4               |
 | Butter4| 10^-1.5 (~0.032)  | 0.4               |
-| Butter5| 10^-1.5 (~0.032)  | 0.4               |
-| Butter6| 10^-1.25 (~0.06)  | 0.4               |
+| Butter5| 10^-1.25 (~0.056) | 0.4               |
+| Butter6| 0.1               | 0.4               |
 
 # License
 Licensed under either of
