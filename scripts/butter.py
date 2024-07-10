@@ -10,7 +10,7 @@ here = Path(__file__).parent
 
 n = 100
 orders = [1, 2, 3, 4, 5, 6]
-min_log10_cutoffs = [-5, -3, -2.25, -1.5, -1.5, -1.25]
+min_log10_cutoffs = [-4, -3, -2, -1.5, -1.25, -1.0]
 max_log10_cutoff = float(np.log10(0.4))
 
 f_ref = 10.0**max_log10_cutoff  # [dimensionless] reference frequency ratio for cutoff testing
@@ -69,7 +69,7 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
 
         f.write(f"/// Initialise a Butterworth filter of order {order} by interpolating the coefficients from stored tables.\n")
         f.write(f"/// Cutoff ratio is the dimensionless ratio of the cutoff frequency to the sampling frequency.\n")
-        f.write(f"/// Region of validity: cutoff ratio from {cutoff_ratios[0]:.2e} to {cutoff_ratios[-1]:.2e}\n")
+        f.write(f"/// Region of validity: cutoff ratio from {float(cutoff_ratios[0]):.2e} to {float(cutoff_ratios[-1]):.2e}\n")
         f.write(f"pub fn butter{order}(cutoff_ratio: f64) -> Result<SisoIirFilter<{order}>, &'static str>" " {\n")
         avals_string = "".join(["    let avals = &["] + [f"&AVALS[{i}][..], " for i in range(order)] + ["];\n"])
         cvals_string = "".join(["    let cvals = &["] + [f"&CVALS[{i}][..], " for i in range(order)] + ["];\n"])
@@ -78,22 +78,22 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
         f.write("    SisoIirFilter::new_interpolated(cutoff_ratio, &LOG10_CUTOFF_RATIOS, avals, cvals, &DVALS)\n")
         f.write("}\n\n")
 
-        logcrlist = [np.log10(x) for x in cutoff_ratios]
+        logcrlist = [float(np.log10(x)) for x in cutoff_ratios]
         f.write("/// [dimensionless] Log base-10 of cutoff ratios, to improve float precision during interpolation\n")
         f.write("#[rustfmt::skip]\n")
         f.write(f"const LOG10_CUTOFF_RATIOS: [f64; {n}] = {logcrlist};\n\n")
 
-        dvals = [d[0][0] for d in dmats]
+        dvals = [float(d[0][0]) for d in dmats]
         f.write("/// State-Space `D` 1x1 matrix\n")
         f.write("#[rustfmt::skip]\n")
         f.write(f"const DVALS: [f64; {n}] = {dvals};\n\n")
 
-        avals = [[a[0,i] for a in amats] for i in range(order)]
+        avals = [[float(a[0,i]) for a in amats] for i in range(order)]
         f.write(f"/// State-Space `A` matrix, first row\n")
         f.write("#[rustfmt::skip]\n")
         f.write(f"const AVALS: [[f64; {n}]; {order}] = {avals};\n\n")
 
-        cvals = [[c[0,i] for c in cmats] for i in range(order)]
+        cvals = [[float(c[0,i]) for c in cmats] for i in range(order)]
         f.write(f"/// State-Space `C` vector\n")
         f.write("#[rustfmt::skip]\n")
         f.write(f"const CVALS: [[f64; {n}]; {order}] = {cvals};\n\n")
@@ -103,13 +103,14 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
         f.write("#[rustfmt::skip]\n")
         f.write("mod test {\n")
         f.write("    use super::*;\n")
-        f.write(f"    const CUTOFF_TEST_INPUT: [f32; {cutoff_test_input.size}] = {[x for x in cutoff_test_input]};\n")
-        f.write(f"    const CUTOFF_TEST_OUTPUT: [f32; {cutoff_test_output.size}] = {[x for x in cutoff_test_output.T[0]]};\n")
+        f.write(f"    const CUTOFF_TEST_INPUT: [f32; {cutoff_test_input.size}] = {[float(x) for x in cutoff_test_input]};\n")
+        f.write(f"    const CUTOFF_TEST_OUTPUT: [f32; {cutoff_test_output.size}] = {[float(x) for x in cutoff_test_output.T[0]]};\n")
         f.write(f"    const STEP_TEST_MIN_OUTPUT: f32 = {float(step_test_min[-1][0])};\n")
         f.write(f"    const STEP_TEST_MAX_OUTPUT: f32 = {float(step_test_max[-1][0])};\n\n")
         f.write("    #[test]\n")
         f.write("    fn test() {\n")
-        f.write(f'        println!("order {order}");\n')
+        f.write(f'        let order = {order};\n')
+        f.write('        println!("order {order}");\n')
         f.write(f"        let mut filter = butter{order}({f_ref}).unwrap();\n")
         f.write("        let out = (0..CUTOFF_TEST_INPUT.len()).map(|i| {filter.update(CUTOFF_TEST_INPUT[i])}).collect::<Vec<f32>>();\n")
         f.write("        // Check overall match to reference output to catch phase error, etc\n")
@@ -117,20 +118,20 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
         f.write("        // Check approximate attenuation at cutoff frequency; should be -3dB or 1/sqrt(2) magnitude\n")
         f.write("        let maxmag = out.iter().fold(0.0_f32, |a, b| a.abs().max(b.abs()));\n")
         f.write("        let attenuation_rel_err = (maxmag - 0.707).abs() / 0.707;\n")
-        f.write('        println!("attenuation rel err {attenuation_rel_err}");\n')
+        f.write('        println!("order {order} attenuation rel err {attenuation_rel_err}");\n')
         f.write("        assert!(attenuation_rel_err < 0.05);\n")
         f.write("        // Check convergence of step responses at min and max tabulated cutoff\n")
         f.write(f"        let mut filtermin = butter{order}(MIN_CUTOFF_RATIO).unwrap();\n")
         f.write(f"        (0..{nstepmin - 1})"".for_each(|_| {filtermin.update(1.0);});\n")
         f.write("        let step_min_final = filtermin.update(1.0);\n")
         f.write("        let step_min_rel_err = (step_min_final - STEP_TEST_MIN_OUTPUT).abs() / STEP_TEST_MIN_OUTPUT;\n")
-        f.write('        println!("step min rel err {step_min_rel_err}");\n')
-        f.write("        assert!(step_min_rel_err < 1e-3);\n")
+        f.write('        println!("order {order} step min rel err {step_min_rel_err}");\n')
+        f.write("        assert!(step_min_rel_err < 1e-4);\n")
         f.write(f"        let mut filtermax = butter{order}(MAX_CUTOFF_RATIO).unwrap();\n")
         f.write(f"        (0..{nstepmax - 1})"".for_each(|_| {filtermax.update(1.0);});\n")
         f.write("        let step_max_final = filtermax.update(1.0);\n")
         f.write("        let step_max_rel_err = (step_max_final - STEP_TEST_MAX_OUTPUT).abs() / STEP_TEST_MAX_OUTPUT;\n")
-        f.write('        println!("step max rel err {step_max_rel_err}");\n')
+        f.write('        println!("order {order} step max rel err {step_max_rel_err}");\n')
         f.write("        assert!(step_max_rel_err < 1e-6);\n")
         f.write("    }\n")
         f.write("}\n")
