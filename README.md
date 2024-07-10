@@ -59,6 +59,9 @@ cubic Hermite method with the log10(cutoff_ratio) as the independent variable.
 Tabulated values are stored and interpolated as 64-bit floats, and only converted
 to 32-bit floats at the final stage of calculation.
 
+After interpolation, the state-space measurement coefficient vector (`C`) is scaled
+to correct steady-state gain for interpolation error, targeting unity gain.
+
 Filter coefficients are extracted from scipy's state-space representations,
 which are the result of a bilinear transform of the transfer function polynomials.
 
@@ -71,10 +74,11 @@ which are the result of a bilinear transform of the transfer function polynomial
 | Butter5| 10^-1.25 (~0.056) | 0.4               |
 | Butter6| 0.1               | 0.4               |
 
-# License
+## License
+
 Licensed under either of
 
-- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+* Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
 at your option.
