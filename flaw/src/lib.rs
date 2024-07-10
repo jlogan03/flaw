@@ -243,6 +243,21 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
         )?
         .interp_one(&[log10_cutoff_ratio])? as f32;
 
+        // Scale `C` to enforce unity gain at zero frequency, that is,
+        // that the step response should converge exactly.
+        //
+        // First, find scalar `xs` for every entry in filter state vector `x`
+        // such that x(k) == x(k-1).
+        let asum = a.iter().sum::<f32>() as f64;
+        let xs = 1.0 / (1.0 - asum);
+        // Then, find what the sum of `C` _should_ be to produce unity gain,
+        // and use that value to calculate a scale factor for the existing `C`.
+        let csum_desired = (1.0 - d as f64) / xs;
+        let csum = c.iter().sum::<f32>() as f64;
+        let scale_factor = (csum_desired / csum) as f32;
+        // Finally, scale `C` to, as closely as possible, produce unity gain.
+        c.iter_mut().for_each(|v| *v *= scale_factor);
+
         Ok(Self::new(&a, &c, d))
     }
 }
