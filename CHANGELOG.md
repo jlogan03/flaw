@@ -1,5 +1,15 @@
 # Chanelog
 
+## 0.3.0 - 2024-12-26
+
+### Changed
+
+* Lower align of SisoIirFilter struct and internal state arrays to 8
+
+### Added
+
+* Add SisoIirFilter.initialize(u) to set the internal state vector to the steady-state values associated with a given measurement `u`
+
 ## 0.2.0 - 2024-07-10
 
 ### Changed
