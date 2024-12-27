@@ -21,8 +21,14 @@ as be formulated and initialized in an embedded environment.
 // First, choose a cutoff frequency as a fraction of sampling frequency
 let cutoff_ratio = 1e-3;
 
-// Initialize a filter, interpolating coefficients to that cutoff ratio.
+// Construct a filter, interpolating coefficients to that cutoff ratio.
+// Initializes internal state to zero by default.
 let mut filter = flaw::butter2(cutoff_ratio).unwrap();  // Errors if extrapolating
+
+// Initialize the internal state of the filter
+// to match the steady-state associated with some input value.
+let initial_steady_measurement = 1.57;  // Some number
+filter.initialize(initial_steady_measurement);
 
 // Update the filter with a new raw measurement
 let measurement = 0.3145; // Some number
@@ -42,7 +48,7 @@ or fully-featured.
 
 Tabulated filters are tested to enforce
 
-* <0.1% error in converged step response at the minimum cutoff frequency
+* <0.01% error in converged step response at the minimum cutoff frequency
 * <1ppm error in converged step response at the maximum cutoff frequency
 * <5% error to -3dB attenuation of a sine input at the cutoff frequency at the maximum cutoff ratio
   * This error appears to be mainly an issue of discretization in test cases, and could be reduced
