@@ -27,12 +27,12 @@ mod test {
 
 /// A simple array with large memory alignment because it will be accessed
 /// often in a loop
-#[repr(align(32))]
+#[repr(align(8))]
 struct AlignedArray<const N: usize>([f32; N]);
 
 /// Single-Input-Single-Output, Infinite Impulse Response filter,
 /// normalized to a sample time interval of 1.0
-#[repr(align(32))]
+#[repr(align(8))]
 pub struct SisoIirFilter<const ORDER: usize> {
     // Aligning the struct will usually keep these scalar fields aligned well enough
     /// Latest state estimate
@@ -40,7 +40,7 @@ pub struct SisoIirFilter<const ORDER: usize> {
     /// State-space `D` scalar
     d: f32,
 
-    /// Internal state buffer, state-space `X(k)` or `X(k-1)`
+    /// Internal state buffer, state-space `X` vector
     x: AlignedArray<ORDER>,
     /// Nontrivial row of state-space `A` matrix in canonical form
     a: AlignedArray<ORDER>,
