@@ -6,6 +6,7 @@
 
 * Derive Clone and Copy on `SisoIirFilter` to allow faster construction of batches of identical filters
 * Make `generated` module pub to provide access to min/max cutoff ratio bounds for generated filters
+* Loosen version requirement on num_traits dep
 
 ## 0.2.1 - 2024-12-26
 
