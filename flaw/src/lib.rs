@@ -1,84 +1,4 @@
-//! # flaw
-//! Control-law-inspired embedded signal filtering, no-std and no-alloc compatible.
-//!
-//! This library provides a simple method for initializing and updating single-input,
-//! single-output infinite-impulse-response filters using 32-bit floats, as well as
-//! tabulated filter coefficients for some common filters. Filters evaluate in
-//! 4N+1 floating-point operations for a filter of order N.
-//!
-//! The name `flaw` is short for filter-law, but also refers to the fact that
-//! digital IIR filtering with small floating-point types is an inherently flawed
-//! approach, in that higher-order and lower-cutoff filters produce very small
-//! coefficients that result in floating-point roundoff error. This library makes
-//! an attempt to mitigate this problem by providing filter coefficients for a tested
-//! domain of validity. The result is a limited, but useful, range of operation
-//! where these filters can achieve both accuracy and performance as well
-//! as be formulated and initialized in an embedded environment.
-//!
-//! ## Example: Second-Order Butterworth Filter
-//!
-//! ```rust
-//! // First, choose a cutoff frequency as a fraction of sampling frequency
-//! let cutoff_ratio = 1e-3;
-//!
-//! // Initialize a filter, interpolating coefficients to that cutoff ratio.
-//! let mut filter = flaw::butter2(cutoff_ratio).unwrap();  // Errors if extrapolating
-//!
-//! // Update the filter with a new raw measurement
-//! let measurement = 0.3145; // Some number
-//! let estimate = filter.update(measurement);  // Latest state estimate
-//! ```
-//!
-//! ## Development Status: Early Days
-//!
-//! This is in an experimental stage - it appears to work well, but is not fully-validated
-//! or fully-featured.
-//!
-//! * More software testing is needed to guarantee filter performance at interpolated cutoff ratios
-//! * More hardware/firmware testing is needed to examine performance on actual microcontrollers
-//! * More filter types can be added
-//!
-//! ## Coefficient Tables
-//!
-//! Tabulated filters are tested to enforce
-//!
-//! * <0.1% error in converged step response at the minimum cutoff frequency
-//! * <1ppm error in converged step response at the maximum cutoff frequency
-//! * <5% error to -3dB attenuation of a sine input at the cutoff frequency at the maximum cutoff ratio
-//!   * This error appears to be mainly an issue of discretization in test cases, and could be reduced
-//!     by using a better method for testing (fit a sine curve to the result or do gradient-descent
-//!     on a cubic interpolator)
-//!
-//! Each filter with tabulated coefficients has a minimum and maximum cutoff ratio.
-//! The minimum value is determined by floating-point error in convergence of a
-//! step response, while the maximum value is determined by the accuracy of attenuation
-//! at the cutoff frequency as the cutoff ratio approaches the Nyquist frequency.
-//!
-//! Coefficients for a given filter are interpolated on these tables using a
-//! cubic Hermite method with the log10(cutoff_ratio) as the independent variable.
-//! Tabulated values are stored and interpolated as 64-bit floats, and only converted
-//! to 32-bit floats at the final stage of calculation.
-//!
-//! Filter coefficients are extracted from scipy's state-space representations,
-//! which are the result of a bilinear transform of the transfer function polynomials.
-//!
-//! | Filter | Min. Cutoff Ratio | Max. Cutoff Ratio |
-//! |--------|-------------------|-------------------|
-//! | Butter1| 10^-5             | 0.4               |
-//! | Butter2| 10^-3             | 0.4               |
-//! | Butter3| 10^-2.25 (~0.006) | 0.4               |
-//! | Butter4| 10^-1.5 (~0.032)  | 0.4               |
-//! | Butter5| 10^-1.5 (~0.032)  | 0.4               |
-//! | Butter6| 10^-1.25 (~0.06)  | 0.4               |
-//!
-//! # License
-//! Licensed under either of
-//!
-//! - Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-//! - MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
-//!
-//! at your option.
-
+#![doc = include_str!("../README.md")]
 #![cfg_attr(not(feature = "std"), no_std)]
 mod generated;
 pub use generated::butter::butter1::butter1;
@@ -173,6 +93,9 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
         self.y
     }
 
+    /// Populate a new filter with arbitrary state-space `A`, `C`, and `D`
+    /// in canonical form s.t. `A` values are the top row only
+    /// and `B` is assumed to be unity.
     pub fn new(a: &[f32], c: &[f32], d: f32) -> Self {
         let mut a_ = [0.0; ORDER];
         a_.copy_from_slice(a);
@@ -261,5 +184,27 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
         c.iter_mut().for_each(|v| *v *= scale_factor);
 
         Ok(Self::new(&a, &c, d))
+    }
+
+    /// Initialize filter internal state to the steady value
+    /// achieved for input `u`. For filters with unity steady-state gain,
+    /// this will also produce an output reading of `u`.
+    pub fn initialize(&mut self, u: f32) {
+        let asum: f32 = self.a.0.iter().sum();
+        let xs = u / (1.0 - asum); // Scalar constant value for `X` entries
+        self.x.0.iter_mut().for_each(|x| *x = xs);
+    }
+}
+
+#[cfg(feature = "std")]
+#[cfg(test)]
+mod test {
+    /// Test initialization to a given input value
+    #[test]
+    fn test_initialize() {
+        let e = core::f64::consts::E as f32;
+        let mut f = super::butter2(0.2).unwrap();
+        f.initialize(e);
+        assert!((e - f.update(e)).abs() / e < 1e-6);
     }
 }

@@ -42,7 +42,7 @@ or fully-featured.
 
 Tabulated filters are tested to enforce
 
-* <0.1% error in converged step response at the minimum cutoff frequency
+* <0.01% error in converged step response at the minimum cutoff frequency
 * <1ppm error in converged step response at the maximum cutoff frequency
 * <5% error to -3dB attenuation of a sine input at the cutoff frequency at the maximum cutoff ratio
   * This error appears to be mainly an issue of discretization in test cases, and could be reduced
