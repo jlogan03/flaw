@@ -1,14 +1,21 @@
 # Chanelog
 
+## 0.2.2 - 2024-12-27
+
+### Changed
+
+* Derive Clone and Copy on `SisoIirFilter` to allow faster construction of batches of identical filters
+* Make `generated` module pub to provide access to min/max cutoff ratio bounds for generated filters
+
 ## 0.2.1 - 2024-12-26
 
 ### Changed
 
-* Lower align of SisoIirFilter struct and internal state arrays to 8
+* Lower align of `SisoIirFilter` struct and internal state arrays to 8
 
 ### Added
 
-* Add SisoIirFilter.initialize(u) to set the internal state vector to the steady-state values associated with a given measurement `u`
+* Add `SisoIirFilter.initialize(u)` to set the internal state vector to the steady-state values associated with a given measurement `u`
 
 ## 0.2.0 - 2024-07-10
 

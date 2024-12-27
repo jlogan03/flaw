@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(not(feature = "std"), no_std)]
-mod generated;
+pub mod generated;
 pub use generated::butter::butter1::butter1;
 pub use generated::butter::butter2::butter2;
 pub use generated::butter::butter3::butter3;
@@ -27,11 +27,13 @@ mod test {
 
 /// A simple array with large memory alignment because it will be accessed
 /// often in a loop
+#[derive(Clone, Copy)]
 #[repr(align(8))]
 struct AlignedArray<const N: usize>([f32; N]);
 
 /// Single-Input-Single-Output, Infinite Impulse Response filter,
 /// normalized to a sample time interval of 1.0
+#[derive(Clone, Copy)]
 #[repr(align(8))]
 pub struct SisoIirFilter<const ORDER: usize> {
     // Aligning the struct will usually keep these scalar fields aligned well enough
