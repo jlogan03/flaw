@@ -77,6 +77,12 @@ which are the result of a bilinear transform of the transfer function polynomial
 | Butter5| 10^-1.5 (~0.032)  | 0.4               |
 | Butter6| 10^-1.25 (~0.06)  | 0.4               |
 
+## Additional Filter Kinds
+
+| Filter | Notes |
+|--------|--------------------------------------------------------------------------------------------------------------|
+| Median | Available for odd numbers of taps. <br>Helpful for rejecting non-oscillatory noise, such as packet latency spikes.
+
 # License
 Licensed under either of
 
