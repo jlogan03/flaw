@@ -1,4 +1,15 @@
-# Chanelog
+# Changelog
+
+## 0.2.3 - 2025-01-01
+
+### Changed
+
+* Use ring buffer for IIR and median filter state storage
+* Lower align of SisoIirFilter struct, since the internal storage is already aligned
+
+### Added
+
+* Implement N-point median filter for odd N >= 3
 
 ## 0.2.2 - 2024-12-27
 
