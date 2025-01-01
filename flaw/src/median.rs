@@ -70,7 +70,6 @@ impl<T: PartialOrd + Copy, const N: usize> MedianFilter<T, N> {
     }
 }
 
-
 #[cfg(feature = "std")]
 #[cfg(test)]
 mod test {
@@ -82,7 +81,7 @@ mod test {
         let inp = [2_u32, 5, 6, 7, 8, 4, 9, 0, 1, 3];
 
         // 3-point
-        let expected = [0,2,5,6,7,7,8,4,1,1];
+        let expected = [0, 2, 5, 6, 7, 7, 8, 4, 1, 1];
         let mut f = MedianFilter::<u32, 3>::new(0);
         for i in 0..inp.len() {
             let v = f.update(inp[i]);

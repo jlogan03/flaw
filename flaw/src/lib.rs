@@ -28,12 +28,11 @@ struct Ring<T: Copy, const N: usize> {
 }
 
 impl<T: Copy, const N: usize> Ring<T, N> {
-
     /// Initialize with buffer populated with constant value
     fn new(value: T) -> Self {
         Self {
             buf: AlignedArray([value; N]),
-            next: 0
+            next: 0,
         }
     }
 
@@ -54,14 +53,13 @@ impl<T: Copy, const N: usize> Ring<T, N> {
     /// Contiguous parts of the buffer split across the next insertion point
     /// s.t. the first slice includes values from index 0 to the most recently
     /// inserted value.
-    /// 
+    ///
     /// To iterate over the items in order of insertion from most recent to oldest,
     /// loop over the first slice, then the second, both in reverse.
     fn buf_parts(&self) -> (&[T], &[T]) {
         self.buf.0.split_at(self.next)
     }
 }
-
 
 /// `std` is required for tests, but is not a default feature.
 /// To allow the library to compile with default features,
@@ -75,7 +73,6 @@ mod test {
         panic!("`std` feature is required for tests")
     }
 }
-
 
 #[cfg(feature = "std")]
 #[cfg(test)]
