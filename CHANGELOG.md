@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.4 - 2025-02-06
+
+### Changed
+
+* Change large const arrays to static to avoid inlining excessively large data
+
 ## 0.2.3 - 2025-01-01
 
 ### Changed
