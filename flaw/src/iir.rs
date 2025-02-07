@@ -2,6 +2,7 @@
 
 // Required for float conversions from 64 to 32 bit and for f32::log10
 #[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
 use num_traits::Float;
 
 use super::{AlignedArray, Ring};
