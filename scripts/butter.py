@@ -81,30 +81,30 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
         logcrlist = [float(np.log10(x)) for x in cutoff_ratios]
         f.write("/// [dimensionless] Log base-10 of cutoff ratios, to improve float precision during interpolation\n")
         f.write("#[rustfmt::skip]\n")
-        f.write(f"const LOG10_CUTOFF_RATIOS: [f64; {n}] = {logcrlist};\n\n")
+        f.write(f"static LOG10_CUTOFF_RATIOS: [f64; {n}] = {logcrlist};\n\n")
 
         dvals = [float(d[0][0]) for d in dmats]
         f.write("/// State-Space `D` 1x1 matrix\n")
         f.write("#[rustfmt::skip]\n")
-        f.write(f"const DVALS: [f64; {n}] = {dvals};\n\n")
+        f.write(f"static DVALS: [f64; {n}] = {dvals};\n\n")
 
         avals = [[float(a[0,i]) for a in amats] for i in range(order)]
         f.write(f"/// State-Space `A` matrix, first row\n")
         f.write("#[rustfmt::skip]\n")
-        f.write(f"const AVALS: [[f64; {n}]; {order}] = {avals};\n\n")
+        f.write(f"static AVALS: [[f64; {n}]; {order}] = {avals};\n\n")
 
         cvals = [[float(c[0,i]) for c in cmats] for i in range(order)]
         f.write(f"/// State-Space `C` vector\n")
         f.write("#[rustfmt::skip]\n")
-        f.write(f"const CVALS: [[f64; {n}]; {order}] = {cvals};\n\n")
+        f.write(f"static CVALS: [[f64; {n}]; {order}] = {cvals};\n\n")
 
         f.write('#[cfg(feature = "std")]\n')
         f.write("#[cfg(test)]\n")
         f.write("#[rustfmt::skip]\n")
         f.write("mod test {\n")
         f.write("    use super::*;\n")
-        f.write(f"    const CUTOFF_TEST_INPUT: [f32; {cutoff_test_input.size}] = {[float(x) for x in cutoff_test_input]};\n")
-        f.write(f"    const CUTOFF_TEST_OUTPUT: [f32; {cutoff_test_output.size}] = {[float(x) for x in cutoff_test_output.T[0]]};\n")
+        f.write(f"    static CUTOFF_TEST_INPUT: [f32; {cutoff_test_input.size}] = {[float(x) for x in cutoff_test_input]};\n")
+        f.write(f"    static CUTOFF_TEST_OUTPUT: [f32; {cutoff_test_output.size}] = {[float(x) for x in cutoff_test_output.T[0]]};\n")
         f.write(f"    const STEP_TEST_MIN_OUTPUT: f32 = {float(step_test_min[-1][0])};\n")
         f.write(f"    const STEP_TEST_MAX_OUTPUT: f32 = {float(step_test_max[-1][0])};\n\n")
         f.write("    #[test]\n")
