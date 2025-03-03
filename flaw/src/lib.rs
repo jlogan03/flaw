@@ -3,7 +3,7 @@
 mod iir;
 mod median;
 
-pub use iir::SisoIirFilter;
+pub use iir::{SisoIirFilter, StagedSisoIirFilter};
 pub use median::MedianFilter;
 
 pub mod generated;

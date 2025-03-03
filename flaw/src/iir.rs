@@ -201,9 +201,14 @@ pub struct StagedSisoIirFilter<const ORDER: usize, const STAGES: usize>(
 );
 
 impl<const ORDER: usize, const STAGES: usize> StagedSisoIirFilter<ORDER, STAGES> {
+    /// Populate a new staged filter from individual filter stages
+    pub fn new(stages: [SisoIirFilter<ORDER>; STAGES]) -> Self {
+        Self(stages)
+    }
+
     /// Evaluate the next estimated value based on the latest measurement
     /// in 4N+1 floating-point ops for each stage with a filter of order N.
-    /// 
+    ///
     /// Each stage's output value is passed as the input to the next stage.
     #[inline]
     pub fn update(&mut self, u: f32) -> f32 {
