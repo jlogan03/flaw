@@ -1,10 +1,5 @@
 /// Infinite-impulse-response filtering on 32-bit floats
-
 // Required for float conversions from 64 to 32 bit and for f32::log10
-#[cfg(not(feature = "std"))]
-#[allow(unused_imports)]
-use num_traits::Float;
-
 use super::{AlignedArray, Ring};
 
 /// Single-Input-Single-Output, Infinite Impulse Response filter,
@@ -122,7 +117,7 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
         cvals: &[&[f64]],
         dvals: &[f64],
     ) -> Result<Self, &'static str> {
-        let log10_cutoff_ratio = cutoff_ratio.log10();
+        let log10_cutoff_ratio = libm::log10(cutoff_ratio);
 
         // Check table bounds
         let mut extrapolated = [false; 1];

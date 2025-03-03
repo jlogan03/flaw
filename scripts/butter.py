@@ -111,6 +111,18 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
         f.write("    SisoIirFilter::new_interpolated(cutoff_ratio, &LOG10_CUTOFF_RATIOS, avals, cvals, &DVALS)\n")
         f.write("}\n\n")
 
+        f.write(f"/// Initialise a two-stage Butterworth filter of combined order 2*{order} by interpolating the coefficients from stored tables.\n")
+        f.write("/// Cutoff ratio is the dimensionless ratio of the cutoff frequency to the sampling frequency.\n")
+        f.write(f"/// Region of validity: cutoff ratio from {float(root_cutoff_ratios[0]):.2e} to {float(root_cutoff_ratios[-1]):.2e}\n")
+        f.write(f"pub fn butter{order}_2stage(cutoff_ratio: f64) -> Result<[SisoIirFilter<{order}>; 2], &'static str>" " {\n")
+        f.write("    // Look up the per-stage cutoff ratio corresponding to the desired combined cutoff\n")
+        f.write("    let log10_root_cutoff_ratio = libm::log10(cutoff_ratio);\n")
+        f.write(f"    let log10_cutoff_ratio = interpn::MulticubicRectilinear::<\'_, _, {order}>::new(&[&LOG10_ROOT2_CUTOFF_RATIOS], &LOG10_CUTOFF_RATIOS, true)?.interp_one(&[log10_root_cutoff_ratio])?;\n")
+        f.write("    let cutoff_ratio = libm::pow(log10_cutoff_ratio, 10.0);\n")
+        f.write(f"    let filt = butter{order}(cutoff_ratio)?;\n")
+        f.write("    Ok([filt, filt])\n")
+        f.write("}\n\n")
+
         logcrlist = [float(np.log10(x)) for x in cutoff_ratios]
         f.write("/// [dimensionless] Log base-10 of cutoff ratios, to improve float precision during interpolation\n")
         f.write("#[rustfmt::skip]\n")

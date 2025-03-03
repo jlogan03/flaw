@@ -17,9 +17,26 @@ pub const MAX_CUTOFF_RATIO: f64 = 0.4;
 /// Cutoff ratio is the dimensionless ratio of the cutoff frequency to the sampling frequency.
 /// Region of validity: cutoff ratio from 1.00e-02 to 4.00e-01
 pub fn butter3(cutoff_ratio: f64) -> Result<SisoIirFilter<3>, &'static str> {
-    let avals = &[&AVALS[0][..], &AVALS[1][..], &AVALS[2][..], ];
-    let cvals = &[&CVALS[0][..], &CVALS[1][..], &CVALS[2][..], ];
+    let avals = &[&AVALS[0][..], &AVALS[1][..], &AVALS[2][..]];
+    let cvals = &[&CVALS[0][..], &CVALS[1][..], &CVALS[2][..]];
     SisoIirFilter::new_interpolated(cutoff_ratio, &LOG10_CUTOFF_RATIOS, avals, cvals, &DVALS)
+}
+
+/// Initialise a two-stage Butterworth filter of combined order 2*3 by interpolating the coefficients from stored tables.
+/// Cutoff ratio is the dimensionless ratio of the cutoff frequency to the sampling frequency.
+/// Region of validity: cutoff ratio from 8.57e-03 to 3.85e-01
+pub fn butter3_2stage(cutoff_ratio: f64) -> Result<[SisoIirFilter<3>; 2], &'static str> {
+    // Look up the per-stage cutoff ratio corresponding to the desired combined cutoff
+    let log10_root_cutoff_ratio = libm::log10(cutoff_ratio);
+    let log10_cutoff_ratio = interpn::MulticubicRectilinear::<'_, _, 3>::new(
+        &[&LOG10_ROOT2_CUTOFF_RATIOS],
+        &LOG10_CUTOFF_RATIOS,
+        true,
+    )?
+    .interp_one(&[log10_root_cutoff_ratio])?;
+    let cutoff_ratio = libm::pow(log10_cutoff_ratio, 10.0);
+    let filt = butter3(cutoff_ratio)?;
+    Ok([filt, filt])
 }
 
 /// [dimensionless] Log base-10 of cutoff ratios, to improve float precision during interpolation
