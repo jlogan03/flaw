@@ -190,3 +190,30 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
         self.x = Ring::new(xs);
     }
 }
+
+/// A multi-stage filter, usually initialized with multiple identical stages
+/// split to provide error correction at each stage to reduce floating point error
+/// for a given cutoff ratio (or, equivalently, to achieve a lower cutoff ratio
+/// than would otherwise be possible for a given tolerance on floating-point error).
+#[derive(Clone, Copy)]
+pub struct StagedSisoIirFilter<const ORDER: usize, const STAGES: usize>(
+    [SisoIirFilter<ORDER>; STAGES],
+);
+
+impl<const ORDER: usize, const STAGES: usize> StagedSisoIirFilter<ORDER, STAGES> {
+    /// Evaluate the next estimated value based on the latest measurement
+    /// in 4N+1 floating-point ops for each stage with a filter of order N.
+    /// 
+    /// Each stage's output value is passed as the input to the next stage.
+    #[inline]
+    pub fn update(&mut self, u: f32) -> f32 {
+        self.0.iter_mut().fold(u, |v, s| s.update(v))
+    }
+
+    /// Initialize filter internal state to the steady value
+    /// achieved for input `u`. For filters with unity steady-state gain,
+    /// this will also produce an output reading of `u`.
+    pub fn initialize(&mut self, u: f32) {
+        self.0.iter_mut().for_each(|s| s.initialize(u));
+    }
+}
