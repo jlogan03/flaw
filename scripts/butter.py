@@ -1,5 +1,4 @@
 """Generation of Butterworth filter coefficient tables"""
-import os
 from pathlib import Path
 
 from interpn import MulticubicRectilinear
@@ -45,21 +44,34 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
 
     # For each system, find the frequency where the gain is the nth root of the cutoff gain
     # to support staging filters
-    cutoff_mag = 2.0 ** 0.5
+    cutoff_mag = 2.0 ** 0.5 / 2.0
     root_cutoff_mag = cutoff_mag ** 0.5
-    for s, cr in zip(systems, cutoff_ratios):
-        w, mag_db, phase = dbode(s)
+
+    root_cutoff_ratios = np.zeros_like(cutoff_ratios)
+    for i, (s, cr) in enumerate(zip(systems, cutoff_ratios)):
+        w, mag_db, phase = dbode(s, w=2.0 * np.pi * np.array([0.0] + cutoff_ratios.tolist()))
         f = w / (2.0 * np.pi)  # Normalized frequency / samplerate
         mag = 10.0 ** (mag_db / 20.0)  # Literal gain
-        interp = MulticubicRectilinear.new([f], mag)
+        interp = MulticubicRectilinear.new([f], mag, linearize_extrapolation=True)
         res = fsolve(lambda x: (interp.eval([x]) - root_cutoff_mag) ** 2, x0=cr)
         x = res[0]
-        plt.plot(f, mag)
-        plt.axvline(x)
-        plt.axhline(interp([x]))
-        plt.show()
+        y = interp.eval([np.atleast_1d(x)])
+        try:
+            # Make sure the solve converged and the solved point is inside the data
+            assert abs(y - root_cutoff_mag) / root_cutoff_mag < 1e-6
+            assert not any(interp.check_bounds([np.atleast_1d(x)], 1e-6)), f"{order}, {x}, {y}, {cr}"
+        except:
+            plt.plot(f, mag)
+            plt.axvline(x)
+            plt.axvline(cr)
+            plt.axhline(cutoff_mag)
+            plt.axhline(y)
+            plt.title(cr)
+            plt.show()
 
+            raise
 
+        root_cutoff_ratios[i] = x
 
     # Generate test output against a subset of the tabulated cutoff ratios
     _t, cutoff_test_output = dlsim(dlti(*butter(N=order, Wn=f_ref, fs=1.0), dt=1.0), cutoff_test_input)
@@ -103,6 +115,11 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
         f.write("/// [dimensionless] Log base-10 of cutoff ratios, to improve float precision during interpolation\n")
         f.write("#[rustfmt::skip]\n")
         f.write(f"static LOG10_CUTOFF_RATIOS: [f64; {n}] = {logcrlist};\n\n")
+
+        logrootcrlist = [float(np.log10(x)) for x in root_cutoff_ratios]
+        f.write("/// [dimensionless] Log base-10 of root cutoff ratios, used to generate multi-stage filters\n")
+        f.write("#[rustfmt::skip]\n")
+        f.write(f"static LOG10_ROOT2_CUTOFF_RATIOS: [f64; {n}] = {logrootcrlist};\n\n")
 
         dvals = [float(d[0][0]) for d in dmats]
         f.write("/// State-Space `D` 1x1 matrix\n")
