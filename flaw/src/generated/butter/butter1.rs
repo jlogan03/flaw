@@ -34,7 +34,7 @@ pub fn butter1_2stage(cutoff_ratio: f64) -> Result<[SisoIirFilter<1>; 2], &'stat
         true,
     )?
     .interp_one(&[log10_root_cutoff_ratio])?;
-    let cutoff_ratio = libm::pow(log10_cutoff_ratio, 10.0);
+    let cutoff_ratio = libm::pow(10.0, log10_cutoff_ratio);
     let filt = butter1(cutoff_ratio)?;
     Ok([filt, filt])
 }

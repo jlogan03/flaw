@@ -118,7 +118,7 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
         f.write("    // Look up the per-stage cutoff ratio corresponding to the desired combined cutoff\n")
         f.write("    let log10_root_cutoff_ratio = libm::log10(cutoff_ratio);\n")
         f.write(f"    let log10_cutoff_ratio = interpn::MulticubicRectilinear::<\'_, _, {order}>::new(&[&LOG10_ROOT2_CUTOFF_RATIOS], &LOG10_CUTOFF_RATIOS, true)?.interp_one(&[log10_root_cutoff_ratio])?;\n")
-        f.write("    let cutoff_ratio = libm::pow(log10_cutoff_ratio, 10.0);\n")
+        f.write("    let cutoff_ratio = libm::pow(10.0, log10_cutoff_ratio);\n")
         f.write(f"    let filt = butter{order}(cutoff_ratio)?;\n")
         f.write("    Ok([filt, filt])\n")
         f.write("}\n\n")
