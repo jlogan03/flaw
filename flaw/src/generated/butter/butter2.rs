@@ -28,6 +28,13 @@ pub fn butter2(cutoff_ratio: f64) -> Result<SisoIirFilter<2>, &'static str> {
 pub fn butter2_2stage(cutoff_ratio: f64) -> Result<StagedSisoIirFilter<2, 2>, &'static str> {
     // Look up the per-stage cutoff ratio corresponding to the desired combined cutoff
     let log10_root_cutoff_ratio = libm::log10(cutoff_ratio);
+
+    if log10_root_cutoff_ratio < LOG10_ROOT2_CUTOFF_RATIOS[0]
+        || log10_root_cutoff_ratio > *LOG10_ROOT2_CUTOFF_RATIOS.last().ok_or("Table size error")?
+    {
+        return Err("Selected cutoff ratio is outside the grid");
+    }
+
     let log10_cutoff_ratio = interpn::MulticubicRectilinear::<'_, _, 2>::new(
         &[&LOG10_ROOT2_CUTOFF_RATIOS],
         &LOG10_CUTOFF_RATIOS,
