@@ -2,3 +2,4 @@ scipy == 1.14.0
 matplotlib == 3.9.1
 numpy == 2.0.0
 jupyter == 1.1.1
+interpn = 0.2.3
