@@ -10,7 +10,7 @@ import numpy as np
 
 here = Path(__file__).parent
 
-n = 100
+n = 50
 orders = [1, 2, 3, 4, 5, 6]
 min_log10_cutoffs = [-4, -3, -2, -1.5, -1.25, -1.0]
 max_log10_cutoff = float(np.log10(0.4))
@@ -169,21 +169,44 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
         f.write(f'        let order = {order};\n')
         f.write('        println!("order {order}");\n')
         f.write(f"        let mut filter = butter{order}({f_ref}).unwrap();\n")
-        f.write("        let out = (0..CUTOFF_TEST_INPUT.len()).map(|i| {filter.update(CUTOFF_TEST_INPUT[i])}).collect::<Vec<f32>>();\n")
+        f.write("        let out = (0..CUTOFF_TEST_INPUT.len()).map(|i| {filter.update(CUTOFF_TEST_INPUT[i])}).collect::<Vec<f32>>();\n\n")
         f.write("        // Check overall match to reference output to catch phase error, etc\n")
         f.write("        (0..CUTOFF_TEST_INPUT.len()).for_each(|i| { let expected = CUTOFF_TEST_OUTPUT[i]; let rel_err = (out[i] - expected).abs() / expected.abs().max(1e-4); assert!(rel_err < 0.05); });\n")
         f.write("        // Check approximate attenuation at cutoff frequency; should be -3dB or 1/sqrt(2) magnitude\n")
         f.write("        let maxmag = out.iter().fold(0.0_f32, |a, b| a.abs().max(b.abs()));\n")
         f.write("        let attenuation_rel_err = (maxmag - 0.707).abs() / 0.707;\n")
         f.write('        println!("order {order} attenuation rel err {attenuation_rel_err}");\n')
-        f.write("        assert!(attenuation_rel_err < 0.05);\n")
+        f.write("        assert!(attenuation_rel_err < 0.05);\n\n")
         f.write("        // Check convergence of step responses at min and max tabulated cutoff\n")
         f.write(f"        let mut filtermin = butter{order}(MIN_CUTOFF_RATIO).unwrap();\n")
         f.write(f"        (0..{nstepmin - 1})"".for_each(|_| {filtermin.update(1.0);});\n")
         f.write("        let step_min_final = filtermin.update(1.0);\n")
         f.write("        let step_min_rel_err = (step_min_final - STEP_TEST_MIN_OUTPUT).abs() / STEP_TEST_MIN_OUTPUT;\n")
         f.write('        println!("order {order} step min rel err {step_min_rel_err}");\n')
-        f.write("        assert!(step_min_rel_err < 1e-4);\n")
+        f.write("        assert!(step_min_rel_err < 1e-4);\n\n")
+
+        f.write(f"""
+    // Check response of staged filter
+    let mut filter_2stage = butter{order}_2stage(0.1).unwrap();
+    let mut maxmag_2stage = 0.0;
+    for i in 0..99999 {{
+        let u = libm::sinf((i as f32) * 2.0 * core::f32::consts::PI / 10.0);
+        let v = filter_2stage.update(u);
+        maxmag_2stage = v.abs().max(maxmag_2stage);
+    }}
+    let attenuation_2stage_rel_err = (maxmag_2stage - 0.707).abs() / 0.707;
+    println!(\"order {{order}} attenuation 2stage rel err {{attenuation_rel_err}}\");
+    assert!(attenuation_2stage_rel_err < 0.05);
+
+    let mut filtermin_2stage = butter{order}_2stage(MIN_CUTOFF_RATIO).unwrap();
+    (0..99999).for_each(|_| {{filtermin_2stage.update(1.0);}});
+    let step_min_2stage_final = filtermin_2stage.update(1.0);
+    let step_min_2stage_rel_err = (step_min_2stage_final - STEP_TEST_MIN_OUTPUT).abs() / STEP_TEST_MIN_OUTPUT;
+    println!("order {{order}} step min 2stage rel err {{step_min_2stage_rel_err}}");
+    assert!(step_min_2stage_rel_err < 2e-4);  // 1e-4 per stage
+    \n\n
+        """)
+
         f.write(f"        let mut filtermax = butter{order}(MAX_CUTOFF_RATIO).unwrap();\n")
         f.write(f"        (0..{nstepmax - 1})"".for_each(|_| {filtermax.update(1.0);});\n")
         f.write("        let step_max_final = filtermax.update(1.0);\n")
