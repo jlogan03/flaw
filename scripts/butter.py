@@ -25,6 +25,12 @@ with open(modfpath, "w") as f:
     for order in orders:
         f.write(f"pub mod butter{order};\n")
 
+gfig = plt.figure()
+plt.title("ButterN Gain")
+
+pfig = plt.figure()
+plt.title("ButterN Phase")
+
 for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
     # Cutoff frequency as a fraction of sampling frequency.
     # All values must be less than (not less-than-or-equal) the Nyquist frequency (half of sampling),
@@ -72,6 +78,27 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
             raise
 
         root_cutoff_ratios[i] = x
+
+    # Examine resulting two-stage filter
+    if order < 3:
+        stage_test_cutoff_ratio = 0.15
+        snom = StateSpace(dlti(*butter(N=order, Wn=stage_test_cutoff_ratio, fs=1.0), dt=1.0))
+        crstage = MulticubicRectilinear.new([root_cutoff_ratios], cutoff_ratios).eval([np.atleast_1d([stage_test_cutoff_ratio])])[0]
+        sstage = StateSpace(dlti(*butter(N=order, Wn=crstage, fs=1.0), dt=1.0))
+        s2stage = sstage * sstage
+
+        w, mag_db_nom, phase_nom = dbode(snom, w=2.0 * np.pi * np.array([0.0] + cutoff_ratios.tolist()))
+        w, mag_db_2stage, phase_2stage = dbode(s2stage, w=2.0 * np.pi * np.array([0.0] + cutoff_ratios.tolist()))
+
+        plt.figure(gfig)
+        plt.plot(w / 2.0 / np.pi, 10.0 ** (mag_db_nom / 20.0), label=f"Butter{order} Nominal")
+        plt.plot(w / 2.0 / np.pi, 10.0 ** (mag_db_2stage / 20.0), label=f"Butter{order} 2-Stage")
+        plt.legend()
+
+        plt.figure(pfig)
+        plt.plot(w / 2.0 / np.pi, phase_nom, label=f"Butter{order} Nominal")
+        plt.plot(w / 2.0 / np.pi, phase_2stage, label=f"Butter{order} 2-Stage")
+        plt.legend()
 
     # Generate test output against a subset of the tabulated cutoff ratios
     _t, cutoff_test_output = dlsim(dlti(*butter(N=order, Wn=f_ref, fs=1.0), dt=1.0), cutoff_test_input)
