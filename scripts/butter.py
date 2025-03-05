@@ -10,9 +10,9 @@ import numpy as np
 
 here = Path(__file__).parent
 
-n = 50
+n = 30
 orders = [1, 2, 3, 4, 5, 6]
-min_log10_cutoffs = [-4, -3, -2, -1.5, -1.25, -1.0]
+min_log10_cutoffs = [-4, -3.01, -2, -1.5, -1.25, -1.0]
 max_log10_cutoff = float(np.log10(0.4))
 
 f_ref = 10.0**max_log10_cutoff  # [dimensionless] reference frequency ratio for cutoff testing
@@ -76,7 +76,7 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
     # Generate test output against a subset of the tabulated cutoff ratios
     _t, cutoff_test_output = dlsim(dlti(*butter(N=order, Wn=f_ref, fs=1.0), dt=1.0), cutoff_test_input)
     nstepmin = int(1/cutoff_ratios[0]) * 10  # Make sure it is converged
-    nstepmax = int(1/cutoff_ratios[-1])
+    nstepmax = 10 * int(1/cutoff_ratios[-1])
     _t, step_test_min = dlsim(dlti(*butter(N=order, Wn=cutoff_ratios[0], fs=1.0), dt=1.0), np.ones(nstepmin))
     _t, step_test_max = dlsim(dlti(*butter(N=order, Wn=cutoff_ratios[-1], fs=1.0), dt=1.0), np.ones(nstepmax))
 
@@ -174,7 +174,7 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
         f.write("        (0..CUTOFF_TEST_INPUT.len()).for_each(|i| { let expected = CUTOFF_TEST_OUTPUT[i]; let rel_err = (out[i] - expected).abs() / expected.abs().max(1e-4); assert!(rel_err < 0.05); });\n")
         f.write("        // Check approximate attenuation at cutoff frequency; should be -3dB or 1/sqrt(2) magnitude\n")
         f.write("        let maxmag = out.iter().fold(0.0_f32, |a, b| a.abs().max(b.abs()));\n")
-        f.write("        let attenuation_rel_err = (maxmag - 0.707).abs() / 0.707;\n")
+        f.write("        let attenuation_rel_err = (maxmag - (libm::sqrtf(2.0) / 2.0)).abs() / (libm::sqrtf(2.0) / 2.0);\n")
         f.write('        println!("order {order} attenuation rel err {attenuation_rel_err}");\n')
         f.write("        assert!(attenuation_rel_err < 0.05);\n\n")
         f.write("        // Check convergence of step responses at min and max tabulated cutoff\n")
@@ -187,15 +187,16 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
 
         f.write(f"""
     // Check response of staged filter
-    let mut filter_2stage = butter{order}_2stage(0.1).unwrap();
+    let freq = 0.17;
+    let mut filter_2stage = butter{order}_2stage(freq).unwrap();
     let mut maxmag_2stage = 0.0;
     for i in 0..99999 {{
-        let u = libm::sinf((i as f32) * 2.0 * core::f32::consts::PI / 10.0);
+        let u = libm::sin((i as f64) * 2.0 * core::f64::consts::PI * freq) as f32;
         let v = filter_2stage.update(u);
         maxmag_2stage = v.abs().max(maxmag_2stage);
     }}
-    let attenuation_2stage_rel_err = (maxmag_2stage - 0.707).abs() / 0.707;
-    println!(\"order {{order}} attenuation 2stage rel err {{attenuation_rel_err}}\");
+    let attenuation_2stage_rel_err = (maxmag_2stage - (libm::sqrtf(2.0) / 2.0)).abs() / (libm::sqrtf(2.0) / 2.0);
+    println!(\"order {{order}} attenuation 2stage rel err {{attenuation_2stage_rel_err}}\");
     assert!(attenuation_2stage_rel_err < 0.05);
 
     let mut filtermin_2stage = butter{order}_2stage(MIN_CUTOFF_RATIO).unwrap();
