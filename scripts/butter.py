@@ -1,5 +1,6 @@
 """Generation of Butterworth filter coefficient tables"""
 from pathlib import Path
+import subprocess
 
 from interpn import MulticubicRectilinear
 
@@ -12,7 +13,7 @@ here = Path(__file__).parent
 
 n = 30
 orders = [1, 2, 3, 4, 5, 6]
-min_log10_cutoffs = [-4, -3.01, -2, -1.5, -1.25, -1.0]
+min_log10_cutoffs = [-4, -3.7789, -2, -1.5, -1.25, -1.0]
 max_log10_cutoff = float(np.log10(0.4))
 
 f_ref = 10.0**max_log10_cutoff  # [dimensionless] reference frequency ratio for cutoff testing
@@ -273,3 +274,6 @@ for order, min_log10_cutoff in zip(orders, min_log10_cutoffs):
     plt.tight_layout(rect=[0, 0.03, 1, 0.99])
 
 plt.show()
+
+subprocess.call(["cargo", "fmt"])
+subprocess.call(["cargo", "test", "--features=std"])
