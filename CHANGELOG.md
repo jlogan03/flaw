@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.5 - 2025-03-05
+
+## Changed
+
+* Update gain error correction procedure to reduce float error
+* Slightly widen butter2 minimum cutoff
+* Reduce number of table entries to 30 from 100
+
+## Added
+
+* Add `StagedSisoIirFilter` struct to initialize and update multiple identical filter stages
+* Add `butter{N}_2stage` variants that create a staged filter with the desired aggregate cutoff and combined order of `2*{N}`
+* Add `butter{N}::LOG10_ROOT_CUTOFF_RATIO` statics describing the normalized frequency where the gain is sqrt(cutoff) for a given corresponding cutoff in `butter{N}::LOG10_CUTOFF_RATIO`, which allows looking up the appropriate cutoff ratio for individual filter stages when building multi-stage filters
+
 ## 0.2.4 - 2025-02-06
 
 ### Changed
