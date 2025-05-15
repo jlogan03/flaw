@@ -1,9 +1,9 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(not(feature = "std"), no_std)]
-mod iir;
-mod fir;
-mod median;
-mod fractional_delay;
+pub mod iir;
+pub mod fir;
+pub mod median;
+pub mod fractional_delay;
 
 pub use iir::SisoIirFilter;
 pub use fir::SisoFirFilter;
