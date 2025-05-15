@@ -3,6 +3,7 @@
 mod iir;
 mod fir;
 mod median;
+mod fractional_delay;
 
 pub use iir::SisoIirFilter;
 pub use fir::SisoFirFilter;

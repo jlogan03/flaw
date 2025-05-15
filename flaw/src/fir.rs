@@ -40,4 +40,9 @@ impl<const ORDER: usize, T: Num + Copy> SisoFirFilter<ORDER, T> {
     pub fn initialize(&mut self, u: T) {
         self.x = Ring::new(u);
     }
+
+    /// Read-only access to taps
+    pub fn taps(&self) -> &[T; ORDER] {
+        &self.taps.0
+    }
 }
