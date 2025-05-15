@@ -1,9 +1,11 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(not(feature = "std"), no_std)]
 mod iir;
+mod fir;
 mod median;
 
 pub use iir::SisoIirFilter;
+pub use fir::SisoFirFilter;
 pub use median::MedianFilter;
 
 pub mod generated;
@@ -13,12 +15,46 @@ pub use generated::butter::butter3::butter3;
 pub use generated::butter::butter4::butter4;
 pub use generated::butter::butter5::butter5;
 pub use generated::butter::butter6::butter6;
+use num_traits::Num;
 
 /// A simple array with large memory alignment because it will be accessed
 /// often in a loop
 #[derive(Clone, Copy)]
 #[repr(align(8))]
 struct AlignedArray<T, const N: usize>([T; N]);
+
+impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
+    /// Multiply-and-sum between this array and a target ring buffer, starting
+    /// with the most recent sample and the first element of this array
+    /// and finishing with the least recent sample and the last element of this array.
+    /// 
+    /// A starting value can be provided, which can be helpful for fine-tuning floating-point error.
+    #[inline]
+    pub fn dot(&self, buf: &Ring<T, N>, start: T) -> T {
+        // Split buffers into compatible slices
+        let x_parts = buf.buf_parts(); // [first, second] both reversed
+        let n = x_parts.0.len(); // ring buffer split point w.r.t. contiguous vectors
+        let a_parts = self.0.split_at(n);
+
+        let mut out = start;
+        //    Sum the second contiguous segment first because it will have smaller values
+        //    for low-pass IIR filters, so this substantially improves float precision.
+        //    The tests don't pass without this as of 2025-05-14!
+        a_parts
+            .1
+            .iter()
+            .zip(x_parts.1.iter().rev())
+            .for_each(|(&aval, &xval)| out = out + aval * xval);
+        //    Sum the first contiguous segment  
+        a_parts
+            .0
+            .iter()
+            .zip(x_parts.0.iter().rev())
+            .for_each(|(&aval, &xval)| out = out + aval * xval);
+
+        out
+    }
+}
 
 /// Ring buffer
 #[derive(Clone, Copy)]

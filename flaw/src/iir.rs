@@ -38,54 +38,19 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
         // may not be tail-call optimized because it contains a branch,
         // resulting in further increased stack usage and reduced throughput.
 
-        // Split buffers into compatible slices
-        let x_parts = self.x.buf_parts(); // [first, second] both reversed
-        let n = x_parts.0.len(); // ring buffer split point w.r.t. contiguous vectors
-        let a_parts = self.a.0.split_at(n);
-        let c_parts = self.c.0.split_at(n);
-
         // Y(k) = CX(k-1) + DU(k)
         // 2N+1 float ops
         // Sum starting with d*u because this term is the smallest,
         // and `c` terms are ordered from smallest to largest.
         // Summation from smallest to largest terms improves
         // float roundoff error.
-        self.y = self.d * u;
-
-        self.y += c_parts
-            .0
-            .iter()
-            .zip(x_parts.0.iter().rev())
-            .map(|(cval, xval)| cval * xval)
-            .sum::<f32>();
-        self.y += c_parts
-            .1
-            .iter()
-            .zip(x_parts.1.iter().rev())
-            .map(|(cval, xval)| cval * xval)
-            .sum::<f32>();
+        self.y = self.c.dot(&self.x, self.d * u);
 
         // X(k) = AX(k-1) + BU(k)
         // `B` in canonical form is like [1, 0, ...] and just selects the one nonzero value in `U`,
         // which is the latest raw measurement.
         // 2N float ops
-        //    Sum the first contiguous segment
-        let mut x0 = a_parts
-            .0
-            .iter()
-            .zip(x_parts.0.iter().rev())
-            .map(|(aval, xval)| aval * xval)
-            .sum::<f32>();
-        //    Sum the second contiguous segment
-        x0 += a_parts
-            .1
-            .iter()
-            .zip(x_parts.1.iter().rev())
-            .map(|(aval, xval)| aval * xval)
-            .sum::<f32>();
-        //    The one nontrivial element from BU(k)
-        //    This may not be small, so it is summed last to improve float roundoff
-        x0 += u;
+        let x0 = self.a.dot(&self.x, 0.0) + u;
 
         // Update x0 and apply time delays
         self.x.push(x0);
