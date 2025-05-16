@@ -15,6 +15,8 @@ use num_traits::Num;
 /// which creates a linear-phase lag of `delay` as a fraction of one sample period.
 /// For best results, `delay` should be between 0 and ORDER - 1; typical applications
 /// use `delay` between 0 and 1.
+/// 
+/// 2 <= ORDER <= 255 is required.
 pub fn lagrange_fractional_delay_taps<const ORDER: usize, T: Num + From<u8> + Copy>(
     delay: T,
 ) -> [T; ORDER] {
