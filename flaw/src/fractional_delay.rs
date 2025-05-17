@@ -16,6 +16,8 @@ use num_traits::Num;
 /// For best results, `delay` should be between 0 and ORDER - 1; typical applications
 /// use `delay` between 0 and 1.
 /// 
+/// Taps are ordered from most recent sample to least recent sample.
+/// 
 /// 2 <= ORDER <= 255 is required.
 pub fn lagrange_fractional_delay_taps<const ORDER: usize, T: Num + From<u8> + Copy>(
     delay: T,
@@ -66,4 +68,10 @@ pub fn lagrange_fractional_delay_filter<const ORDER: usize, T: Num + From<u8> + 
 ) -> SisoFirFilter<ORDER, T> {
     let taps: [T; ORDER] = lagrange_fractional_delay_taps(delay);
     SisoFirFilter::new(&taps)
+}
+
+
+#[cfg(test)]
+mod test {
+    
 }
