@@ -80,7 +80,7 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
     /// Build a new low-pass with coefficients interpolated on baked tables.
     /// After interpolation, the `C` vector is scaled by a (hopefully) small
     /// amount to more closely produce unity steady-state gain.
-    /// 
+    ///
     /// Note that this procedure will not work for high-pass or band-pass filters,
     /// which are incompatible with the error-correction procedure.
     pub fn new_interpolated(

@@ -1,14 +1,14 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(not(feature = "std"), no_std)]
-pub mod iir;
 pub mod fir;
-pub mod median;
 pub mod fractional_delay;
+pub mod iir;
+pub mod median;
 
-pub use iir::SisoIirFilter;
 pub use fir::SisoFirFilter;
-pub use median::MedianFilter;
 pub use fractional_delay::polynomial_fractional_delay;
+pub use iir::SisoIirFilter;
+pub use median::MedianFilter;
 
 pub mod generated;
 pub use generated::butter::butter1::butter1;
@@ -30,7 +30,7 @@ impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
     /// Multiply-and-sum between this array and a target ring buffer, starting
     /// with the most recent sample and the first element of this array
     /// and finishing with the least recent sample and the last element of this array.
-    /// 
+    ///
     /// A starting value can be provided, which can be helpful for fine-tuning floating-point error.
     #[inline]
     pub fn dot(&self, buf: &Ring<T, N>, start: T) -> T {
@@ -48,7 +48,7 @@ impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
             .iter()
             .zip(x_parts.1.iter().rev())
             .for_each(|(&aval, &xval)| out = out + aval * xval);
-        //    Sum the first contiguous segment  
+        //    Sum the first contiguous segment
         a_parts
             .0
             .iter()
