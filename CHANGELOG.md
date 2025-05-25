@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.5 - 2025-03-25
+
+### Added
+
+* Add FIR module with generic number field type
+* Add Lagrange interpolator fractional delay filter construction
+
 ## 0.2.4 - 2025-02-06
 
 ### Changed

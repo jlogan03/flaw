@@ -20,7 +20,7 @@ use num_traits::Num;
 /// 
 /// 2 <= ORDER <= 255 is required. The actual maximum usable order varies by
 /// numerical field type, and is typically around 10.
-pub fn lagrange_fractional_delay_taps<const ORDER: usize, T: Num + From<u8> + Copy>(
+pub fn polynomial_fractional_delay_taps<const ORDER: usize, T: Num + From<u8> + Copy>(
     delay: T,
 ) -> [T; ORDER] {
     let mut taps = [T::zero(); ORDER];
@@ -64,42 +64,42 @@ pub fn lagrange_fractional_delay_taps<const ORDER: usize, T: Num + From<u8> + Co
 /// but in this special case with equal sample spacing, we do not need to invert a matrix.
 ///
 /// Building the taps requires 4 * N^2 - N operations for N taps.
-pub fn lagrange_fractional_delay_filter<const ORDER: usize, T: Num + From<u8> + Copy>(
+pub fn polynomial_fractional_delay<const ORDER: usize, T: Num + From<u8> + Copy>(
     delay: T,
 ) -> SisoFirFilter<ORDER, T> {
-    let taps: [T; ORDER] = lagrange_fractional_delay_taps(delay);
+    let taps: [T; ORDER] = polynomial_fractional_delay_taps(delay);
     SisoFirFilter::new(&taps)
 }
 
 
 #[cfg(test)]
 mod test {
-    use super::lagrange_fractional_delay_filter;
+    use super::polynomial_fractional_delay;
 
     /// Check that the fractional delay produces the correct value for special cases
     /// where the signal is a polynomial that can be reproduced exactly by the filter.
     #[test]
-    fn test_lagrange_fractional_delay_filter() {
+    fn test_polynomial_fractional_delay_filter() {
 
         // Linear signal
         let vals = [4.0_f32, 3.0, 2.0, 1.0];
         //   Linear filter
-        let mut filter: crate::SisoFirFilter<2, f32> = lagrange_fractional_delay_filter(0.5);
+        let mut filter: crate::SisoFirFilter<2, f32> = polynomial_fractional_delay(0.5);
         vals.iter().for_each(|v| {filter.update(*v);});
         assert_eq!(filter.y(), 1.5);
         //   Quadratic filter
-        let mut filter: crate::SisoFirFilter<3, f32> = lagrange_fractional_delay_filter(0.5);
+        let mut filter: crate::SisoFirFilter<3, f32> = polynomial_fractional_delay(0.5);
         vals.iter().for_each(|v| {filter.update(*v);});
         assert_eq!(filter.y(), 1.5);
         //   Cubic filter
-        let mut filter: crate::SisoFirFilter<4, f32> = lagrange_fractional_delay_filter(0.5);
+        let mut filter: crate::SisoFirFilter<4, f32> = polynomial_fractional_delay(0.5);
         vals.iter().for_each(|v| {filter.update(*v);});
         assert_eq!(filter.y(), 1.5);
 
         // Cubic signal
         let func = |x: f32| {0.3 + 0.18 * x - 0.5 * x.powf(2.0) + 0.7 * x.powf(3.0)};
         let vals = [func(0.0), func(1.0), func(2.0), func(3.0)];
-        let mut filter: crate::SisoFirFilter<4, f32> = lagrange_fractional_delay_filter(0.2);
+        let mut filter: crate::SisoFirFilter<4, f32> = polynomial_fractional_delay(0.2);
         vals.iter().for_each(|v| {filter.update(*v);});
         let err = (filter.y() - func(2.8)).abs();
         assert!(err < 1e-6);

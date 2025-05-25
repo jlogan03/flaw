@@ -8,6 +8,7 @@ pub mod fractional_delay;
 pub use iir::SisoIirFilter;
 pub use fir::SisoFirFilter;
 pub use median::MedianFilter;
+pub use fractional_delay::polynomial_fractional_delay;
 
 pub mod generated;
 pub use generated::butter::butter1::butter1;
@@ -16,6 +17,7 @@ pub use generated::butter::butter3::butter3;
 pub use generated::butter::butter4::butter4;
 pub use generated::butter::butter5::butter5;
 pub use generated::butter::butter6::butter6;
+
 use num_traits::Num;
 
 /// A simple array with large memory alignment because it will be accessed
