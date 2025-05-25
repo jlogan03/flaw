@@ -77,6 +77,15 @@ mod test {
     /// where the signal is a polynomial that can be reproduced exactly by the filter.
     #[test]
     fn test_polynomial_fractional_delay_filter() {
+        // Constant signal
+        let vals = [1.0_f32, 1.0, 1.0, 1.0];
+        //   Linear filter
+        let mut filter: crate::SisoFirFilter<2, f32> = polynomial_fractional_delay(0.5);
+        vals.iter().for_each(|v| {
+            filter.update(*v);
+        });
+        assert_eq!(filter.y(), 1.0);
+
         // Linear signal
         let vals = [4.0_f32, 3.0, 2.0, 1.0];
         //   Linear filter
