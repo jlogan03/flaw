@@ -18,7 +18,8 @@ use num_traits::Num;
 /// 
 /// Taps are ordered from most recent sample to least recent sample.
 /// 
-/// 2 <= ORDER <= 255 is required.
+/// 2 <= ORDER <= 255 is required. The actual maximum usable order varies by
+/// numerical field type, and is typically around 10.
 pub fn lagrange_fractional_delay_taps<const ORDER: usize, T: Num + From<u8> + Copy>(
     delay: T,
 ) -> [T; ORDER] {
@@ -44,7 +45,7 @@ pub fn lagrange_fractional_delay_taps<const ORDER: usize, T: Num + From<u8> + Co
         taps[k as usize] = coeff;
     }
 
-    // TODO: enforce that taps sum to exactly 1.0
+    // Enforce that taps sum to exactly 1.0
     let tapsum = taps.iter().fold(T::zero(), |acc, &x| acc + x);
     taps.iter_mut().for_each(|x| *x = *x / tapsum);
 
@@ -73,5 +74,34 @@ pub fn lagrange_fractional_delay_filter<const ORDER: usize, T: Num + From<u8> + 
 
 #[cfg(test)]
 mod test {
-    
+    use super::lagrange_fractional_delay_filter;
+
+    /// Check that the fractional delay produces the correct value for special cases
+    /// where the signal is a polynomial that can be reproduced exactly by the filter.
+    #[test]
+    fn test_lagrange_fractional_delay_filter() {
+
+        // Linear signal
+        let vals = [4.0, 3.0, 2.0, 1.0];
+        //   Linear filter
+        let mut filter: crate::SisoFirFilter<2, f64> = lagrange_fractional_delay_filter(0.5);
+        vals.iter().for_each(|v| {filter.update(*v);});
+        assert_eq!(filter.y(), 1.5);
+        //   Quadratic filter
+        let mut filter: crate::SisoFirFilter<3, f64> = lagrange_fractional_delay_filter(0.5);
+        vals.iter().for_each(|v| {filter.update(*v);});
+        assert_eq!(filter.y(), 1.5);
+        //   Cubic filter
+        let mut filter: crate::SisoFirFilter<4, f64> = lagrange_fractional_delay_filter(0.5);
+        vals.iter().for_each(|v| {filter.update(*v);});
+        assert_eq!(filter.y(), 1.5);
+
+        // Cubic signal
+        let func = |x: f64| {0.3 + 0.18 * x - 0.5 * x.powf(2.0) + 0.7 * x.powf(3.0)};
+        let vals = [func(0.0), func(1.0), func(2.0), func(3.0)];
+        let mut filter: crate::SisoFirFilter<4, f64> = lagrange_fractional_delay_filter(0.2);
+        vals.iter().for_each(|v| {filter.update(*v);});
+        let err = (filter.y() - func(2.8)).abs();
+        assert!(err < 1e-14);
+    }
 }

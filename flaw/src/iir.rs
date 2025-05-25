@@ -159,4 +159,9 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
         let xs = u / (1.0 - asum); // Scalar constant value for `X` entries
         self.x = Ring::new(xs);
     }
+
+    /// Latest output
+    pub fn y(&self) -> f32 {
+        self.y
+    }
 }

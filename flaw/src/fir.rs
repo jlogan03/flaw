@@ -6,6 +6,8 @@ use crate::{AlignedArray, Ring};
 /// This is simply a running convolution of the taps with the samples.
 #[derive(Clone, Copy)]
 pub struct SisoFirFilter<const ORDER: usize, T: Num + Copy> {
+    /// Latest output
+    y: T,
     /// Internal sample buffer
     x: Ring<T, ORDER>,
     /// Filter taps ordered from most-recent sample to least-recent sample
@@ -19,7 +21,8 @@ impl<const ORDER: usize, T: Num + Copy> SisoFirFilter<ORDER, T> {
     #[inline]
     pub fn update(&mut self, u: T) -> T {
         self.x.push(u);
-        self.taps.dot(&self.x, T::zero())
+        self.y = self.taps.dot(&self.x, T::zero());
+        self.y
     }
 
     /// Populate a new filter with arbitrary taps.
@@ -29,6 +32,7 @@ impl<const ORDER: usize, T: Num + Copy> SisoFirFilter<ORDER, T> {
         taps_.copy_from_slice(taps);
 
         Self {
+            y: T::zero(),
             x: Ring::new(T::zero()),
             taps: AlignedArray(taps_),
         }
@@ -39,10 +43,16 @@ impl<const ORDER: usize, T: Num + Copy> SisoFirFilter<ORDER, T> {
     /// this will also produce an output reading of `u`.
     pub fn initialize(&mut self, u: T) {
         self.x = Ring::new(u);
+        self.update(u);
     }
 
     /// Read-only access to taps
     pub fn taps(&self) -> &[T; ORDER] {
         &self.taps.0
+    }
+
+    /// Latest output
+    pub fn y(&self) -> T {
+        self.y
     }
 }
