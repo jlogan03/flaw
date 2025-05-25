@@ -82,26 +82,26 @@ mod test {
     fn test_lagrange_fractional_delay_filter() {
 
         // Linear signal
-        let vals = [4.0, 3.0, 2.0, 1.0];
+        let vals = [4.0_f32, 3.0, 2.0, 1.0];
         //   Linear filter
-        let mut filter: crate::SisoFirFilter<2, f64> = lagrange_fractional_delay_filter(0.5);
+        let mut filter: crate::SisoFirFilter<2, f32> = lagrange_fractional_delay_filter(0.5);
         vals.iter().for_each(|v| {filter.update(*v);});
         assert_eq!(filter.y(), 1.5);
         //   Quadratic filter
-        let mut filter: crate::SisoFirFilter<3, f64> = lagrange_fractional_delay_filter(0.5);
+        let mut filter: crate::SisoFirFilter<3, f32> = lagrange_fractional_delay_filter(0.5);
         vals.iter().for_each(|v| {filter.update(*v);});
         assert_eq!(filter.y(), 1.5);
         //   Cubic filter
-        let mut filter: crate::SisoFirFilter<4, f64> = lagrange_fractional_delay_filter(0.5);
+        let mut filter: crate::SisoFirFilter<4, f32> = lagrange_fractional_delay_filter(0.5);
         vals.iter().for_each(|v| {filter.update(*v);});
         assert_eq!(filter.y(), 1.5);
 
         // Cubic signal
-        let func = |x: f64| {0.3 + 0.18 * x - 0.5 * x.powf(2.0) + 0.7 * x.powf(3.0)};
+        let func = |x: f32| {0.3 + 0.18 * x - 0.5 * x.powf(2.0) + 0.7 * x.powf(3.0)};
         let vals = [func(0.0), func(1.0), func(2.0), func(3.0)];
-        let mut filter: crate::SisoFirFilter<4, f64> = lagrange_fractional_delay_filter(0.2);
+        let mut filter: crate::SisoFirFilter<4, f32> = lagrange_fractional_delay_filter(0.2);
         vals.iter().for_each(|v| {filter.update(*v);});
         let err = (filter.y() - func(2.8)).abs();
-        assert!(err < 1e-14);
+        assert!(err < 1e-6);
     }
 }
