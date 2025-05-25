@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.5 - 2025-05-25
+
+### Changed
+
+* Make `Ring` and `AlignedArray` pub to support read-only access to filter internals
+
+### Added
+
+* Add FIR module with generic number field type
+* Add Lagrange interpolator fractional delay filter construction
+* Add functions for read-only access to IIR filter internals
+
 ## 0.2.4 - 2025-02-06
 
 ### Changed

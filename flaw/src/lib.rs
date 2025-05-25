@@ -1,8 +1,12 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(not(feature = "std"), no_std)]
-mod iir;
-mod median;
+pub mod fir;
+pub mod fractional_delay;
+pub mod iir;
+pub mod median;
 
+pub use fir::SisoFirFilter;
+pub use fractional_delay::polynomial_fractional_delay;
 pub use iir::SisoIirFilter;
 pub use median::MedianFilter;
 
@@ -14,22 +18,59 @@ pub use generated::butter::butter4::butter4;
 pub use generated::butter::butter5::butter5;
 pub use generated::butter::butter6::butter6;
 
+use num_traits::Num;
+
 /// A simple array with large memory alignment because it will be accessed
-/// often in a loop
+/// often in a loop, with methods specialized for filter evaluation.
 #[derive(Clone, Copy)]
 #[repr(align(8))]
-struct AlignedArray<T, const N: usize>([T; N]);
+pub struct AlignedArray<T, const N: usize>([T; N]);
 
-/// Ring buffer
+impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
+    /// Multiply-and-sum between this array and a target ring buffer, starting
+    /// with the most recent sample and the first element of this array
+    /// and finishing with the least recent sample and the last element of this array.
+    ///
+    /// A starting value can be provided for the summation,
+    /// which can be helpful for fine-tuning floating-point error.
+    #[inline]
+    pub fn dot(&self, buf: &Ring<T, N>, start: T) -> T {
+        // Split buffers into compatible slices
+        let x_parts = buf.buf_parts(); // [first, second] both reversed
+        let n = x_parts.0.len(); // ring buffer split point w.r.t. contiguous vectors
+        let a_parts = self.0.split_at(n);
+
+        let mut out = start;
+        //    Sum the second contiguous segment first because it will have smaller values
+        //    for low-pass IIR filters, so this substantially improves float precision.
+        //    The tests don't pass without this as of 2025-05-14!
+        a_parts
+            .1
+            .iter()
+            .zip(x_parts.1.iter().rev())
+            .for_each(|(&aval, &xval)| out = out + aval * xval);
+        //    Sum the first contiguous segment
+        a_parts
+            .0
+            .iter()
+            .zip(x_parts.0.iter().rev())
+            .for_each(|(&aval, &xval)| out = out + aval * xval);
+
+        out
+    }
+}
+
+/// Ring buffer.
+/// In use for filtering, the most recent sample is stored last.
 #[derive(Clone, Copy)]
-struct Ring<T: Copy, const N: usize> {
+pub struct Ring<T: Copy, const N: usize> {
     buf: AlignedArray<T, N>,
     next: usize,
 }
 
 impl<T: Copy, const N: usize> Ring<T, N> {
     /// Initialize with buffer populated with constant value
-    fn new(value: T) -> Self {
+    pub fn new(value: T) -> Self {
         Self {
             buf: AlignedArray([value; N]),
             next: 0,
@@ -37,7 +78,7 @@ impl<T: Copy, const N: usize> Ring<T, N> {
     }
 
     /// Replace the oldest value in the buffer with a new value
-    fn push(&mut self, value: T) {
+    pub fn push(&mut self, value: T) {
         self.buf.0[self.next] = value;
         self.next += 1;
         if self.next == N {
@@ -56,7 +97,7 @@ impl<T: Copy, const N: usize> Ring<T, N> {
     ///
     /// To iterate over the items in order of insertion from most recent to oldest,
     /// loop over the first slice, then the second, both in reverse.
-    fn buf_parts(&self) -> (&[T], &[T]) {
+    pub fn buf_parts(&self) -> (&[T], &[T]) {
         self.buf.0.split_at(self.next)
     }
 }

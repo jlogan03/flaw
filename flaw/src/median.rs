@@ -64,9 +64,8 @@ impl<T: PartialOrd + Copy, const N: usize> MedianFilter<T, N> {
         // As long as N is small, this will be fast
         self.buf.copy_from_slice(self.vals.buf());
         insertion_sort(&mut self.buf);
-        let median = self.buf[self.imid];
 
-        median
+        self.buf[self.imid]
     }
 }
 

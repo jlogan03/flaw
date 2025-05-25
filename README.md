@@ -15,6 +15,16 @@ domain of validity. The result is a limited, but useful, range of operation
 where these filters can achieve both accuracy and performance as well
 as be formulated and initialized in an embedded environment.
 
+## Capabilities
+
+* IIR (f32-only for now)
+  * General IIR filter using state-space canonical form
+  * Interpolated low-pass filters w/ gain error correction
+  * Baked coefficients for Butterworth filters of order 1-6
+* FIR (generic number type)
+  * General FIR filter
+  * Lagrange polynomial fractional-delay filter construction
+
 ## Example: Second-Order Butterworth Filter
 
 ```rust
@@ -34,15 +44,6 @@ filter.initialize(initial_steady_measurement);
 let measurement = 0.3145; // Some number
 let estimate = filter.update(measurement);  // Latest state estimate
 ```
-
-## Development Status: Early Days
-
-This is in an experimental stage - it appears to work well, but is not fully-validated
-or fully-featured.
-
-* More software testing is needed to guarantee filter performance at interpolated cutoff ratios
-* More hardware/firmware testing is needed to examine performance on actual microcontrollers
-* More filter types can be added
 
 ## Coefficient Tables
 

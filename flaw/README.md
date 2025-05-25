@@ -15,6 +15,16 @@ domain of validity. The result is a limited, but useful, range of operation
 where these filters can achieve both accuracy and performance as well
 as be formulated and initialized in an embedded environment.
 
+## Capabilities
+
+* IIR (f32-only for now)
+  * General IIR filter using state-space canonical form
+  * Interpolated low-pass filters w/ gain error correction
+  * Baked coefficients for Butterworth filters of order 1-6
+* FIR (generic number type)
+  * General FIR filter
+  * Lagrange polynomial fractional-delay filter construction
+
 ## Example: Second-Order Butterworth Filter
 
 ```rust
@@ -34,15 +44,6 @@ filter.initialize(initial_steady_measurement);
 let measurement = 0.3145; // Some number
 let estimate = filter.update(measurement);  // Latest state estimate
 ```
-
-## Development Status: Early Days
-
-This is in an experimental stage - it appears to work well, but is not fully-validated
-or fully-featured.
-
-* More software testing is needed to guarantee filter performance at interpolated cutoff ratios
-* More hardware/firmware testing is needed to examine performance on actual microcontrollers
-* More filter types can be added
 
 ## Coefficient Tables
 
@@ -65,28 +66,26 @@ cubic Hermite method with the log10(cutoff_ratio) as the independent variable.
 Tabulated values are stored and interpolated as 64-bit floats, and only converted
 to 32-bit floats at the final stage of calculation.
 
+After interpolation, the state-space measurement coefficient vector (`C`) is scaled
+to correct steady-state gain for interpolation error, targeting unity gain.
+
 Filter coefficients are extracted from scipy's state-space representations,
 which are the result of a bilinear transform of the transfer function polynomials.
 
 | Filter | Min. Cutoff Ratio | Max. Cutoff Ratio |
 |--------|-------------------|-------------------|
-| Butter1| 10^-5             | 0.4               |
+| Butter1| 10^-4             | 0.4               |
 | Butter2| 10^-3             | 0.4               |
-| Butter3| 10^-2.25 (~0.006) | 0.4               |
+| Butter3| 10^-2             | 0.4               |
 | Butter4| 10^-1.5 (~0.032)  | 0.4               |
-| Butter5| 10^-1.5 (~0.032)  | 0.4               |
-| Butter6| 10^-1.25 (~0.06)  | 0.4               |
+| Butter5| 10^-1.25 (~0.056) | 0.4               |
+| Butter6| 0.1               | 0.4               |
 
-## Additional Filter Kinds
+## License
 
-| Filter | Notes |
-|--------|--------------------------------------------------------------------------------------------------------------|
-| Median | Available for odd numbers of taps. <br>Helpful for rejecting non-oscillatory noise, such as packet latency spikes.
-
-# License
 Licensed under either of
 
-- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+* Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
 at your option.
