@@ -1,4 +1,4 @@
-/// Infinite-impulse-response filtering on 32-bit floats
+//! Infinite-impulse-response filtering on 32-bit floats
 
 // Required for float conversions from 64 to 32 bit and for f32::log10
 #[cfg(not(feature = "std"))]
@@ -166,5 +166,25 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
     /// Latest output
     pub fn y(&self) -> f32 {
         self.y
+    }
+
+    /// Read-only access to internal state
+    pub fn x(&self) -> &Ring<f32, ORDER> {
+        &self.x
+    }
+
+    /// Read-only access to nontrivial row of state-space `A`
+    pub fn a(&self) -> &AlignedArray<f32, ORDER> {
+        &self.a
+    }
+
+    /// Read-only access to nontrivial row of state-space `C`
+    pub fn c(&self) -> &AlignedArray<f32, ORDER> {
+        &self.c
+    }
+
+    /// Read-only access to nontrivial entry in state-space `D`
+    pub fn d(&self) -> f32 {
+        self.d
     }
 }

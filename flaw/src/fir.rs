@@ -46,7 +46,9 @@ impl<const ORDER: usize, T: Num + Copy> SisoFirFilter<ORDER, T> {
         self.update(u);
     }
 
-    /// Read-only access to taps
+    /// Read-only access to taps.
+    /// This is, equivalently, the one nontrivial row of either the state-space `A` or `C`
+    /// matrix depending on choice of formulation.
     pub fn taps(&self) -> &[T; ORDER] {
         &self.taps.0
     }
@@ -54,5 +56,10 @@ impl<const ORDER: usize, T: Num + Copy> SisoFirFilter<ORDER, T> {
     /// Latest output
     pub fn y(&self) -> T {
         self.y
+    }
+
+    /// Read-only access to internal state buffer
+    pub fn x(&self) -> &Ring<T, ORDER> {
+        &self.x
     }
 }

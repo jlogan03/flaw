@@ -24,7 +24,7 @@ use num_traits::Num;
 /// often in a loop
 #[derive(Clone, Copy)]
 #[repr(align(8))]
-struct AlignedArray<T, const N: usize>([T; N]);
+pub struct AlignedArray<T, const N: usize>([T; N]);
 
 impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
     /// Multiply-and-sum between this array and a target ring buffer, starting
@@ -61,14 +61,14 @@ impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
 
 /// Ring buffer
 #[derive(Clone, Copy)]
-struct Ring<T: Copy, const N: usize> {
+pub struct Ring<T: Copy, const N: usize> {
     buf: AlignedArray<T, N>,
     next: usize,
 }
 
 impl<T: Copy, const N: usize> Ring<T, N> {
     /// Initialize with buffer populated with constant value
-    fn new(value: T) -> Self {
+    pub fn new(value: T) -> Self {
         Self {
             buf: AlignedArray([value; N]),
             next: 0,
@@ -76,7 +76,7 @@ impl<T: Copy, const N: usize> Ring<T, N> {
     }
 
     /// Replace the oldest value in the buffer with a new value
-    fn push(&mut self, value: T) {
+    pub fn push(&mut self, value: T) {
         self.buf.0[self.next] = value;
         self.next += 1;
         if self.next == N {
@@ -95,7 +95,7 @@ impl<T: Copy, const N: usize> Ring<T, N> {
     ///
     /// To iterate over the items in order of insertion from most recent to oldest,
     /// loop over the first slice, then the second, both in reverse.
-    fn buf_parts(&self) -> (&[T], &[T]) {
+    pub fn buf_parts(&self) -> (&[T], &[T]) {
         self.buf.0.split_at(self.next)
     }
 }
