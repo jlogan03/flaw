@@ -21,7 +21,7 @@ pub use generated::butter::butter6::butter6;
 use num_traits::Num;
 
 /// A simple array with large memory alignment because it will be accessed
-/// often in a loop
+/// often in a loop, with methods specialized for filter evaluation.
 #[derive(Clone, Copy)]
 #[repr(align(8))]
 pub struct AlignedArray<T, const N: usize>([T; N]);
@@ -31,7 +31,8 @@ impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
     /// with the most recent sample and the first element of this array
     /// and finishing with the least recent sample and the last element of this array.
     ///
-    /// A starting value can be provided, which can be helpful for fine-tuning floating-point error.
+    /// A starting value can be provided for the summation,
+    /// which can be helpful for fine-tuning floating-point error.
     #[inline]
     pub fn dot(&self, buf: &Ring<T, N>, start: T) -> T {
         // Split buffers into compatible slices
@@ -59,7 +60,8 @@ impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
     }
 }
 
-/// Ring buffer
+/// Ring buffer.
+/// In use for filtering, the most recent sample is stored last.
 #[derive(Clone, Copy)]
 pub struct Ring<T: Copy, const N: usize> {
     buf: AlignedArray<T, N>,
