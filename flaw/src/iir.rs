@@ -27,19 +27,11 @@ pub struct SisoIirFilter<const ORDER: usize> {
 
 impl<const ORDER: usize> SisoIirFilter<ORDER> {
     /// Evaluate the next estimated value based on the latest measurement
-    /// in 4N+1 floating-point ops for a filter of order N.
+    /// in 4N-1 floating-point ops for a filter of order N.
     #[inline]
     pub fn update(&mut self, u: f32) -> f32 {
-        // Both multiply-and-sum loops could be turned into chained mul-add,
-        // but microcontrollers mostly don't have
-        // mul-add instructions as of the year 2024, so using mul_add here
-        // would cause severe performance regression. Using chained mul-add
-        // on an unknown number of points also requires a recursion that
-        // may not be tail-call optimized because it contains a branch,
-        // resulting in further increased stack usage and reduced throughput.
-
         // Y(k) = CX(k-1) + DU(k)
-        // 2N+1 float ops
+        // 2N float ops
         // Sum starting with d*u because this term is the smallest,
         // and `c` terms are ordered from smallest to largest.
         // Summation from smallest to largest terms improves
@@ -49,8 +41,8 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
         // X(k) = AX(k-1) + BU(k)
         // `B` in canonical form is like [1, 0, ...] and just selects the one nonzero value in `U`,
         // which is the latest raw measurement.
-        // 2N float ops
-        let x0 = self.a.dot(&self.x, 0.0) + u;
+        // 2N-1 float ops
+        let x0 = self.a.dot(&self.x, u);
 
         // Update x0 and apply time delays
         self.x.push(x0);
@@ -150,6 +142,10 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
         let scale_factor = (csum_desired / csum) as f32;
         // Finally, scale `C` to, as closely as possible, produce unity gain.
         c.iter_mut().for_each(|v| *v *= scale_factor);
+
+        // Reverse order to speed up later evaluations
+        a.reverse();
+        c.reverse();
 
         Ok(Self::new(&a, &c, d))
     }

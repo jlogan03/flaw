@@ -10,7 +10,7 @@ pub struct SisoFirFilter<const ORDER: usize, T: Num + Copy> {
     y: T,
     /// Internal sample buffer
     x: Ring<T, ORDER>,
-    /// Filter taps ordered from most-recent sample to least-recent sample
+    /// Filter taps ordered most-recent-last
     taps: AlignedArray<T, ORDER>,
 }
 
@@ -26,7 +26,7 @@ impl<const ORDER: usize, T: Num + Copy> SisoFirFilter<ORDER, T> {
     }
 
     /// Populate a new filter with arbitrary taps.
-    /// Filter taps ordered from most-recent sample to least-recent sample.
+    /// Filter taps are ordered most-recent-last.
     pub fn new(taps: &[T]) -> Self {
         let mut taps_ = [T::zero(); ORDER];
         taps_.copy_from_slice(taps);

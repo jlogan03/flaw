@@ -28,23 +28,23 @@ use num_traits::Num;
 pub struct AlignedArray<T, const N: usize>([T; N]);
 
 impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
-    /// Multiply-and-sum between this array and a target ring buffer, starting
-    /// with the most recent sample and the first element of this array
-    /// and finishing with the least recent sample and the last element of this array.
+    /// Multiply-and-sum between this array and a target ring buffer.
     ///
     /// A starting value can be provided for the summation,
     /// which can be helpful for fine-tuning floating-point error.
     #[inline]
     pub fn dot(&self, buf: &Ring<T, N>, start: T) -> T {
-        const {assert!(N < 128, "N > 128 not supported")}
+        const {assert!(N < 128, "N >= 128 not supported")}
 
+        // Multiply-and-sum loops could be turned into chained mul-add,
+        // but microcontrollers mostly don't have mul-add instructions
+        // as of the year 2025, so using mul_add here would cause severe
+        // performance regression.
         let other = buf.buf();
         let mut acc = start;
         unroll! {
             for i < 128 in 0..N {
-                // Iterate in reverse for improved numerics (sum smallest values first)
-                let j = (N-1) - i;
-                acc = acc + self.0[j] * other[j];
+                acc = acc + self.0[i] * other[i];
             }
         }
 
@@ -53,7 +53,7 @@ impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
 }
 
 /// Ring buffer.
-/// Most recent sample is stored first.
+/// Most recent sample is stored last.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct Ring<T: Copy, const N: usize> {
@@ -71,11 +71,11 @@ impl<T: Copy, const N: usize> Ring<T, N> {
     /// Replace the oldest value in the buffer with a new value
     pub fn push(&mut self, value: T) {
         unroll! {
-            for i < 128 in 1..N {
-                self.buf.0[N-i] = self.buf.0[N-i-1];
+            for i < 128 in 0..(N-1) {
+                self.buf.0[i] = self.buf.0[i + 1];
             }
         }
-        self.buf.0[0] = value;
+        self.buf.0[N-1] = value;
     }
 
     /// The whole internal buffer, with no indication of the current index

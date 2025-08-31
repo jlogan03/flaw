@@ -8,6 +8,7 @@
 //! \[2\] “Lagrange polynomial,” Wikipedia. Apr. 16, 2025. Accessed: May 14, 2025. [Online]. Available: https://en.wikipedia.org/wiki/Lagrange_polynomial
 
 use crate::SisoFirFilter;
+use crunchy::unroll;
 use num_traits::Num;
 
 /// Calculate taps for a Lagrange polynomial fractional delay filter
@@ -15,7 +16,7 @@ use num_traits::Num;
 /// For best results, `delay` should be between 0 and ORDER - 1; typical applications
 /// use `delay` between 0 and 1.
 ///
-/// Taps are ordered from most recent sample to least recent sample.
+/// Taps are ordered most-recent-last.
 ///
 /// 2 <= ORDER <= 255 is required. The actual maximum usable order varies by
 /// numerical field type, and is typically around 10.
@@ -26,28 +27,38 @@ pub fn polynomial_fractional_delay_taps<const ORDER: usize, T: Num + From<u8> + 
 
     const {
         assert!(
-            ORDER <= u8::MAX as usize,
-            "Filter order must be less than u8::MAX"
+            ORDER <= 10,
+            "Polynomial fractional delay filter not supported for order > 10"
         );
-        assert!(ORDER >= 2, "Filter order less than 2 is meaningless");
+        assert!(
+            ORDER >= 2,
+            "Fractional delay filter order less than 2 is meaningless"
+        );
     }
 
-    for k in 0..ORDER as u8 {
-        let mut coeff = T::one();
-        let kv = T::from(k);
-        for m in 0..ORDER as u8 {
-            let mv = T::from(m);
-            if m != k {
-                coeff = coeff * (delay - mv) / (kv - mv);
+    unroll! {
+        for k < 11 in 0..ORDER {
+            let mut coeff = T::one();
+            let kv = T::from(k as u8);
+
+            unroll! {
+                for m < 11 in 0..ORDER {
+                    let mv = T::from(m as u8);
+                    if m != k {
+                        coeff = coeff * (delay - mv) / (kv - mv);
+                    }
+                }
             }
+
+            taps[k as usize] = coeff;
         }
-        taps[k as usize] = coeff;
     }
 
     // Enforce that taps sum to exactly 1.0
     let tapsum = taps.iter().fold(T::zero(), |acc, &x| acc + x);
     taps.iter_mut().for_each(|x| *x = *x / tapsum);
 
+    taps.reverse();
     taps
 }
 

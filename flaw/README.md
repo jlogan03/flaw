@@ -4,7 +4,7 @@ Embedded signal filtering, no-std and no-alloc compatible.
 This library provides a simple method for initializing and updating single-input,
 single-output infinite-impulse-response filters using 32-bit floats, as well as
 tabulated filter coefficients for some common filters. Filters evaluate in
-4N+1 floating-point operations for a filter of order N.
+4N-1 floating-point operations for a filter of order N.
 
 The name `flaw` is short for filter-law, but also refers to the fact that
 digital IIR filtering with small floating-point types is an inherently flawed
