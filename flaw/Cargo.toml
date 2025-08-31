@@ -1,12 +1,12 @@
 [package]
 name = "flaw"
 version = "0.3.0"
-edition = "2021"
+edition = "2024"
 authors = ["James Logan <jlogan03@gmail.com>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/jlogan03/flaw/"
 homepage = "https://github.com/jlogan03/flaw/flaw"
-description = "Control-law-inspired embedded signal filtering, no-std and no-alloc compatible."
+description = "Embedded signal filtering, no-std and no-alloc compatible."
 readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

@@ -13,7 +13,8 @@ Various performance-related improvements.
 * Add `u` value as initial for A*x dot product
     * (Potentially substantially) Improves float error for small values of latest measurement
       `u` at the expense of slightly worse float error for large `u`
-* Update flop counter per eval to 4N-1
+* Update flop per eval count to 4N-1
+* Update rust edition to 2024
 
 ## 0.2.5 - 2025-05-25
 
