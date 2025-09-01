@@ -34,7 +34,7 @@ impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
     /// which can be helpful for fine-tuning floating-point error.
     #[inline]
     pub fn dot(&self, buf: &Ring<T, N>, start: T) -> T {
-        const {assert!(N < 128, "N >= 128 not supported")}
+        const { assert!(N < 128, "N >= 128 not supported") }
 
         // Multiply-and-sum loops could be turned into chained mul-add,
         // but microcontrollers mostly don't have mul-add instructions
@@ -64,7 +64,7 @@ impl<T: Copy, const N: usize> Ring<T, N> {
     /// Initialize with buffer populated with constant value
     pub fn new(value: T) -> Self {
         Self {
-            buf: AlignedArray([value; N])
+            buf: AlignedArray([value; N]),
         }
     }
 
@@ -75,7 +75,7 @@ impl<T: Copy, const N: usize> Ring<T, N> {
                 self.buf.0[i] = self.buf.0[i + 1];
             }
         }
-        self.buf.0[N-1] = value;
+        self.buf.0[N - 1] = value;
     }
 
     /// The whole internal buffer, with no indication of the current index
