@@ -1,16 +1,16 @@
 # flaw
-Control-law-inspired embedded signal filtering, no-std and no-alloc compatible.
+Embedded signal filtering, no-std and no-alloc compatible.
 
 This library provides a simple method for initializing and updating single-input,
 single-output infinite-impulse-response filters using 32-bit floats, as well as
 tabulated filter coefficients for some common filters. Filters evaluate in
-4N+1 floating-point operations for a filter of order N.
+4N-1 floating-point operations for a filter of order N.
 
 The name `flaw` is short for filter-law, but also refers to the fact that
 digital IIR filtering with small floating-point types is an inherently flawed
 approach, in that higher-order and lower-cutoff filters produce very small
-coefficients that result in floating-point roundoff error. This library makes
-an attempt to mitigate this problem by providing filter coefficients for a tested
+coefficients that result in floating-point roundoff error. This library mitigates
+that problem by providing filter coefficients for a tested
 domain of validity. The result is a limited, but useful, range of operation
 where these filters can achieve both accuracy and performance as well
 as be formulated and initialized in an embedded environment.

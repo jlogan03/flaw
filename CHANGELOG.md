@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.0 - 2025-08-31
+
+Various performance-related improvements.
+~20% improvement in speed based on testing on an STM32H7 microcontroller.
+
+### Changed
+
+* !Store filter coeffs and taps in opposite order (most-recent-last) to improve vectorization
+* !Const-unroll compute intensive loops
+    * !Limit size of FIR filters to <128 taps
+    * !Limit order of polynomial fractional delay filters to <=10
+* Add `u` value as initial for A*x dot product
+    * (Potentially substantially) Improves float error for small values of latest measurement
+      `u` at the expense of slightly worse float error for large `u`
+* Update flop per eval count to 4N-1
+* Update rust edition to 2024
+
 ## 0.2.5 - 2025-05-25
 
 ### Changed

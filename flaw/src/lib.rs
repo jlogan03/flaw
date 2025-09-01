@@ -5,6 +5,7 @@ pub mod fractional_delay;
 pub mod iir;
 pub mod median;
 
+use crunchy::unroll;
 pub use fir::SisoFirFilter;
 pub use fractional_delay::polynomial_fractional_delay;
 pub use iir::SisoIirFilter;
@@ -27,45 +28,36 @@ use num_traits::Num;
 pub struct AlignedArray<T, const N: usize>([T; N]);
 
 impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
-    /// Multiply-and-sum between this array and a target ring buffer, starting
-    /// with the most recent sample and the first element of this array
-    /// and finishing with the least recent sample and the last element of this array.
+    /// Multiply-and-sum between this array and a target ring buffer.
     ///
     /// A starting value can be provided for the summation,
     /// which can be helpful for fine-tuning floating-point error.
     #[inline]
     pub fn dot(&self, buf: &Ring<T, N>, start: T) -> T {
-        // Split buffers into compatible slices
-        let x_parts = buf.buf_parts(); // [first, second] both reversed
-        let n = x_parts.0.len(); // ring buffer split point w.r.t. contiguous vectors
-        let a_parts = self.0.split_at(n);
+        const { assert!(N < 128, "N >= 128 not supported") }
 
-        let mut out = start;
-        //    Sum the second contiguous segment first because it will have smaller values
-        //    for low-pass IIR filters, so this substantially improves float precision.
-        //    The tests don't pass without this as of 2025-05-14!
-        a_parts
-            .1
-            .iter()
-            .zip(x_parts.1.iter().rev())
-            .for_each(|(&aval, &xval)| out = out + aval * xval);
-        //    Sum the first contiguous segment
-        a_parts
-            .0
-            .iter()
-            .zip(x_parts.0.iter().rev())
-            .for_each(|(&aval, &xval)| out = out + aval * xval);
+        // Multiply-and-sum loops could be turned into chained mul-add,
+        // but microcontrollers mostly don't have mul-add instructions
+        // as of the year 2025, so using mul_add here would cause severe
+        // performance regression.
+        let other = buf.buf();
+        let mut acc = start;
+        unroll! {
+            for i < 128 in 0..N {
+                acc = acc + self.0[i] * other[i];
+            }
+        }
 
-        out
+        acc
     }
 }
 
 /// Ring buffer.
-/// In use for filtering, the most recent sample is stored last.
+/// Most recent sample is stored last.
 #[derive(Clone, Copy)]
+#[repr(transparent)]
 pub struct Ring<T: Copy, const N: usize> {
     buf: AlignedArray<T, N>,
-    next: usize,
 }
 
 impl<T: Copy, const N: usize> Ring<T, N> {
@@ -73,32 +65,22 @@ impl<T: Copy, const N: usize> Ring<T, N> {
     pub fn new(value: T) -> Self {
         Self {
             buf: AlignedArray([value; N]),
-            next: 0,
         }
     }
 
     /// Replace the oldest value in the buffer with a new value
     pub fn push(&mut self, value: T) {
-        self.buf.0[self.next] = value;
-        self.next += 1;
-        if self.next == N {
-            self.next = 0;
+        unroll! {
+            for i < 128 in 0..(N-1) {
+                self.buf.0[i] = self.buf.0[i + 1];
+            }
         }
+        self.buf.0[N - 1] = value;
     }
 
     /// The whole internal buffer, with no indication of the current index
     fn buf(&self) -> &[T; N] {
         &self.buf.0
-    }
-
-    /// Contiguous parts of the buffer split across the next insertion point
-    /// s.t. the first slice includes values from index 0 to the most recently
-    /// inserted value.
-    ///
-    /// To iterate over the items in order of insertion from most recent to oldest,
-    /// loop over the first slice, then the second, both in reverse.
-    pub fn buf_parts(&self) -> (&[T], &[T]) {
-        self.buf.0.split_at(self.next)
     }
 }
 
