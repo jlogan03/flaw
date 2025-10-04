@@ -50,7 +50,7 @@ pub fn polynomial_fractional_delay_taps<const ORDER: usize, T: Num + From<u8> + 
                 }
             }
 
-            taps[k as usize] = coeff;
+            taps[k] = coeff;
         }
     }
 

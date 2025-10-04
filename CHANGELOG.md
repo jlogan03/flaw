@@ -8,9 +8,11 @@
 * Implement Default on all structs
 * Update deps
 
+Various performance-related improvements.
 ## 0.3.0 - 2025-08-31
 
 Various performance-related improvements.
+~20% improvement in speed based on testing on an STM32H7 microcontroller.
 
 ### Changed
 
