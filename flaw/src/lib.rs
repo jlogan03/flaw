@@ -23,9 +23,15 @@ use num_traits::Num;
 
 /// A simple array with large memory alignment because it will be accessed
 /// often in a loop, with methods specialized for filter evaluation.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 #[repr(align(8))]
 pub struct AlignedArray<T, const N: usize>([T; N]);
+
+impl<T: Copy + Num, const N: usize> Default for AlignedArray<T, N> {
+    fn default() -> Self {
+        Self([T::zero(); N])
+    }
+}
 
 impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
     /// Multiply-and-sum between this array and a target ring buffer.
@@ -34,7 +40,7 @@ impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
     /// which can be helpful for fine-tuning floating-point error.
     #[inline]
     pub fn dot(&self, buf: &Ring<T, N>, start: T) -> T {
-        const { assert!(N < 128, "N >= 128 not supported") }
+        const { assert!(N < 129, "N > 128 not supported") }
 
         // Multiply-and-sum loops could be turned into chained mul-add,
         // but microcontrollers mostly don't have mul-add instructions
@@ -54,13 +60,13 @@ impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
 
 /// Ring buffer.
 /// Most recent sample is stored last.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default, Debug)]
 #[repr(transparent)]
-pub struct Ring<T: Copy, const N: usize> {
+pub struct Ring<T: Copy + Num, const N: usize> {
     buf: AlignedArray<T, N>,
 }
 
-impl<T: Copy, const N: usize> Ring<T, N> {
+impl<T: Copy + Num, const N: usize> Ring<T, N> {
     /// Initialize with buffer populated with constant value
     pub fn new(value: T) -> Self {
         Self {

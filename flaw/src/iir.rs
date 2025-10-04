@@ -9,7 +9,7 @@ use super::{AlignedArray, Ring};
 
 /// Single-Input-Single-Output, Infinite Impulse Response filter,
 /// normalized to a sample time interval of 1.0
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct SisoIirFilter<const ORDER: usize> {
     // Aligning the struct will usually keep these scalar fields aligned well enough
     /// Latest state estimate
@@ -107,7 +107,7 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
                 avals[i],
                 true,
             )?
-            .interp_one(&[log10_cutoff_ratio])? as f32;
+            .interp_one([log10_cutoff_ratio])? as f32;
         }
 
         // Interpolate `C` values
@@ -117,7 +117,7 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
                 cvals[i],
                 true,
             )?
-            .interp_one(&[log10_cutoff_ratio])? as f32;
+            .interp_one([log10_cutoff_ratio])? as f32;
         }
 
         // Interpolate `D` value
@@ -126,7 +126,7 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
             dvals,
             true,
         )?
-        .interp_one(&[log10_cutoff_ratio])? as f32;
+        .interp_one([log10_cutoff_ratio])? as f32;
 
         // Scale `C` to enforce unity gain at zero frequency, that is,
         // that the step response should converge exactly.

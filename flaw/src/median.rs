@@ -1,5 +1,7 @@
 //! Median filter on arbitrary partially-ordered type.
 
+use num_traits::Num;
+
 use super::Ring;
 
 /// In-place insertion sort method.
@@ -32,13 +34,13 @@ fn insertion_sort<T: PartialOrd>(s: &mut [T]) {
 /// and not for other numeric types, guards against this failure must be
 /// implemented on the inputs given to this filter, and can't be implemented
 /// inside the filter update.
-pub struct MedianFilter<T: PartialOrd + Copy, const N: usize> {
+pub struct MedianFilter<T: PartialOrd + Copy + Num, const N: usize> {
     vals: Ring<T, N>,
     buf: [T; N],
     imid: usize,
 }
 
-impl<T: PartialOrd + Copy, const N: usize> MedianFilter<T, N> {
+impl<T: PartialOrd + Copy + Num, const N: usize> MedianFilter<T, N> {
     /// Initialize with the buffer fully populated with the supplied value `v`
     pub fn new(v: T) -> Self {
         const {
