@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 - 2025-10-03
+
+### Changed
+
+* !Add bound on Num trait for generic fields
+* Implement Default on all structs
+* Update deps
+
 ## 0.3.0 - 2025-08-31
 
 Various performance-related improvements.
