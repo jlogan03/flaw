@@ -13,7 +13,7 @@ readme = "README.md"
 
 [dependencies]
 crunchy = "0.2.4"
-interpn = { version = "^0.5.0", default-features = false }
+interpn = { version = "^0.6.1", default-features = false }
 num-traits = { version = "^0.2.19", default-features = false, features = ["libm"] }
 
 [features]
