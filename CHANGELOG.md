@@ -12,6 +12,7 @@ Using FMA to accelerate and reduce roundoff error in dot products.
 ### Changed
 
 * Add trait bound on `MulAdd<Output = T>` for numeric types in FIR and IIR filters
+* Make `std` a default feature to enable publishing and docs to work properly
 
 ## 0.4.0 - 2025-10-03
 
