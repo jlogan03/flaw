@@ -19,7 +19,7 @@ pub use generated::butter::butter4::butter4;
 pub use generated::butter::butter5::butter5;
 pub use generated::butter::butter6::butter6;
 
-use num_traits::Num;
+use num_traits::{MulAdd, Num};
 
 /// A simple array with large memory alignment because it will be accessed
 /// often in a loop, with methods specialized for filter evaluation.
@@ -33,7 +33,7 @@ impl<T: Copy + Num, const N: usize> Default for AlignedArray<T, N> {
     }
 }
 
-impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
+impl<T: Copy + Num + MulAdd<Output = T>, const N: usize> AlignedArray<T, N> {
     /// Multiply-and-sum between this array and a target ring buffer.
     ///
     /// A starting value can be provided for the summation,
@@ -48,9 +48,18 @@ impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
         // performance regression.
         let other = buf.buf();
         let mut acc = start;
+
+        #[cfg(not(feature = "fma"))]
         unroll! {
             for i < 128 in 0..N {
                 acc = acc + self.0[i] * other[i];
+            }
+        }
+
+        #[cfg(feature = "fma")]
+        unroll! {
+            for i < 128 in 0..N {
+                acc = self.0[i].mul_add(other[i], acc);
             }
         }
 
@@ -62,11 +71,11 @@ impl<T: Copy + Num, const N: usize> AlignedArray<T, N> {
 /// Most recent sample is stored last.
 #[derive(Clone, Copy, Default, Debug)]
 #[repr(transparent)]
-pub struct Ring<T: Copy + Num, const N: usize> {
+pub struct Ring<T: Num + Copy, const N: usize> {
     buf: AlignedArray<T, N>,
 }
 
-impl<T: Copy + Num, const N: usize> Ring<T, N> {
+impl<T: Num + Copy, const N: usize> Ring<T, N> {
     /// Initialize with buffer populated with constant value
     pub fn new(value: T) -> Self {
         Self {
@@ -74,7 +83,11 @@ impl<T: Copy + Num, const N: usize> Ring<T, N> {
         }
     }
 
-    /// Replace the oldest value in the buffer with a new value
+    /// Replace the oldest value in the buffer with a new value.
+    /// Despite the unnecessary copies compared to a true ring buffer, this is
+    /// faster overall in filtering applications where one dot product is performed
+    /// per push, and the cost of splitting the dot product into two segments is large
+    /// compared to the savings from avoiding copies.
     pub fn push(&mut self, value: T) {
         unroll! {
             for i < 128 in 0..(N-1) {

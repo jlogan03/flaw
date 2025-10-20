@@ -9,7 +9,7 @@
 
 use crate::SisoFirFilter;
 use crunchy::unroll;
-use num_traits::Num;
+use num_traits::{MulAdd, Num};
 
 /// Calculate taps for a Lagrange polynomial fractional delay filter
 /// which creates a linear-phase lag of `delay` as a fraction of one sample period.
@@ -20,7 +20,10 @@ use num_traits::Num;
 ///
 /// 2 <= ORDER <= 255 is required. The actual maximum usable order varies by
 /// numerical field type, and is typically around 10.
-pub fn polynomial_fractional_delay_taps<const ORDER: usize, T: Num + From<u8> + Copy>(
+pub fn polynomial_fractional_delay_taps<
+    const ORDER: usize,
+    T: Num + From<u8> + Copy + MulAdd<Output = T>,
+>(
     delay: T,
 ) -> [T; ORDER] {
     let mut taps = [T::zero(); ORDER];
@@ -73,7 +76,10 @@ pub fn polynomial_fractional_delay_taps<const ORDER: usize, T: Num + From<u8> + 
 /// but in this special case with equal sample spacing, we do not need to invert a matrix.
 ///
 /// Building the taps requires 4 * N^2 - N operations for N taps.
-pub fn polynomial_fractional_delay<const ORDER: usize, T: Num + From<u8> + Copy>(
+pub fn polynomial_fractional_delay<
+    const ORDER: usize,
+    T: Num + From<u8> + Copy + MulAdd<Output = T>,
+>(
     delay: T,
 ) -> SisoFirFilter<ORDER, T> {
     let taps: [T; ORDER] = polynomial_fractional_delay_taps(delay);

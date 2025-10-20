@@ -1,11 +1,11 @@
-use num_traits::Num;
+use num_traits::{MulAdd, Num};
 
 use crate::{AlignedArray, Ring};
 
 /// Single-Input-Single-Output, Finite Impulse Response filter.
 /// This is simply a running convolution of the taps with the samples.
 #[derive(Clone, Copy)]
-pub struct SisoFirFilter<const ORDER: usize, T: Num + Copy> {
+pub struct SisoFirFilter<const ORDER: usize, T: Num + Copy + MulAdd<Output = T>> {
     /// Latest output
     y: T,
     /// Internal sample buffer
@@ -14,7 +14,7 @@ pub struct SisoFirFilter<const ORDER: usize, T: Num + Copy> {
     taps: AlignedArray<T, ORDER>,
 }
 
-impl<const ORDER: usize, T: Num + Copy> SisoFirFilter<ORDER, T> {
+impl<const ORDER: usize, T: Num + Copy + MulAdd<Output = T>> SisoFirFilter<ORDER, T> {
     /// Evaluate the next estimated value based on the latest measurement
     /// in 2N-1 floating-point ops for a filter of order N.
     /// This is a simple convolution - push the latest value, then multiply-and-sum.
