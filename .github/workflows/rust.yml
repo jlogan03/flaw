@@ -20,7 +20,7 @@ jobs:
     - name: Format
       run: cd flaw; cargo fmt --check --verbose
     - name: Lint
-      run: cd flaw; cargo clippy
+      run: cd flaw; cargo clippy --features=std
     - name: Build
       run: cd flaw; cargo build --verbose
     - name: Run tests
