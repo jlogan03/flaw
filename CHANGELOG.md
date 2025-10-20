@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0 - 2025-10-19
+
+Using FMA to accelerate and reduce roundoff error in dot products.
+
+### Added
+
+* Add `fma` feature that enables the use of fused multiply-add for dot products
+  * Disabled by default because this causes a severe performance regression unless FMA is enabled for the target
+
+### Changed
+
+* Add trait bound on `MulAdd<Output = T>` for numeric types in FIR and IIR filters
+
 ## 0.4.0 - 2025-10-03
 
 ### Changed
@@ -9,6 +22,7 @@
 * Update deps
 
 Various performance-related improvements.
+
 ## 0.3.0 - 2025-08-31
 
 Various performance-related improvements.

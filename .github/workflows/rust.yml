@@ -20,11 +20,11 @@ jobs:
     - name: Format
       run: cd flaw; cargo fmt --check --verbose
     - name: Lint
-      run: cd flaw; cargo clippy
-    - name: Build
-      run: cd flaw; cargo build --verbose
+      run: cd flaw; cargo clippy --features=std
     - name: Run tests
       run: cd flaw; cargo test --features=std --verbose
+    - name: Run tests with mul_add
+      run: cd flaw; cargo test --features=std,fma --verbose
     - name: Test no-std
       run: |
         cd test_no_std
