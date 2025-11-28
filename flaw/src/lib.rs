@@ -5,6 +5,7 @@ pub mod fractional_delay;
 pub mod iir;
 pub mod median;
 pub mod sos;
+pub mod butter_sos;
 
 use crunchy::unroll;
 pub use fir::SisoFirFilter;
