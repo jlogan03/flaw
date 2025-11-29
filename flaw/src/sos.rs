@@ -1,3 +1,9 @@
+//! Second Order Sections (SOS) filters.
+
+// Required for float conversions from 64 to 32 bit and log10 on no-std targets
+#[cfg(not(feature = "std"))]
+use num_traits::Float;
+
 use num_traits::{FromPrimitive, MulAdd, Num, ToPrimitive};
 
 /// Single-Input-Single-Output, cascaded Second Order Sections filter.
@@ -112,7 +118,8 @@ where
         }
         // Now scale the numerator coefficients to get unity gain at DC.
         // Apply the required scaling in even parts to each section.
-        let correction = T::from_f64(dc_gain.powf(-1.0 / SECTIONS as f64)).ok_or("Conversion from f64 failed")?;
+        let correction = T::from_f64(dc_gain.powf(-1.0 / SECTIONS as f64))
+            .ok_or("Conversion from f64 failed")?;
         for section in sos.iter_mut() {
             section[0] = section[0] * correction;
             section[1] = section[1] * correction;
@@ -134,14 +141,12 @@ where
         }
 
         Ok(Self::new(&sos))
-
     }
 }
- 
 
 #[cfg(feature = "std")]
 #[cfg(test)]
- mod test {
+mod test {
     use super::SisoSosFilter;
 
     #[test]
@@ -149,21 +154,35 @@ where
         // Coefficients for a 4th order lowpass Butterworth filter with fc/fs = 0.05.
         // Coefficients computed with scipy.signal.butter.
         let mut filter = SisoSosFilter::<2, f64>::new(&[
-            [4.16599204e-04, 8.33198409e-04, 4.16599204e-04, -1.47967422e+00, 5.55821543e-01],
-            [1.00000000e+00, 2.00000000e+00, 1.00000000e+00, -1.70096433e+00, 7.88499740e-01],
+            [
+                4.16599204e-04,
+                8.33198409e-04,
+                4.16599204e-04,
+                -1.47967422e+00,
+                5.55821543e-01,
+            ],
+            [
+                1.00000000e+00,
+                2.00000000e+00,
+                1.00000000e+00,
+                -1.70096433e+00,
+                7.88499740e-01,
+            ],
         ]);
         // Measure the gain of the filter on sine waves of different frequencies.
         // Compare the measured gains to the expected gains. The expected gains were
         // calculated with scipy.signal.freqz_sos in scripts/sos_test.py.
         // f is frequency normalized to the sample frequency.
         for (f, gain_expected) in [
-            (0.010, 1.000), // gain should be 1 well below the cutoff frequency
+            (0.010, 1.000),    // gain should be 1 well below the cutoff frequency
             (0.050, 7.057e-1), // gain should be ~1/sqrt(2) at the cutoff frequency
             (0.100, 5.643e-2), // gain should be << 1 well above the cutoff frequency
         ] {
             // Setup
             let n = 1024;
-            let input: Vec<f64> = (0..n).map(|i| (2.0 * std::f64::consts::PI * f * i as f64).sin()).collect();
+            let input: Vec<f64> = (0..n)
+                .map(|i| (2.0 * std::f64::consts::PI * f * i as f64).sin())
+                .collect();
             let original_rms = (input.iter().map(|v| v * v).sum::<f64>() / n as f64).sqrt();
             let mut output = Vec::with_capacity(n);
 
@@ -177,7 +196,10 @@ where
             let output_rms = (output.iter().map(|v| v * v).sum::<f64>() / n as f64).sqrt();
             let gain = output_rms / original_rms;
             let err = (gain - gain_expected).abs();
-            assert!(err < 0.01, "f = {f}: gain = {gain}, expected {gain_expected}, err = {err}");
+            assert!(
+                err < 0.01,
+                "f = {f}: gain = {gain}, expected {gain_expected}, err = {err}"
+            );
         }
     }
- }
+}

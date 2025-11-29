@@ -5,8 +5,7 @@ use crate::sos::SisoSosFilter;
 
 pub const NUM_SECTIONS: usize = 1;
 const NUM_INTERP_POINTS: usize = 100;
-// pub const MIN_CUTOFF_RATIO_F32: f64 = 0.005;
-pub const MIN_CUTOFF_RATIO_F32: f64 = 0.001;
+pub const MIN_CUTOFF_RATIO_F32: f64 = 0.005;
 pub const MAX_CUTOFF_RATIO_F32: f64 = 0.4;
 pub const MIN_CUTOFF_RATIO_F64: f64 = 0.002;
 pub const MAX_CUTOFF_RATIO_F64: f64 = 0.4;
