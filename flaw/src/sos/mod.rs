@@ -4,6 +4,7 @@
 #[cfg(not(feature = "std"))]
 use num_traits::Float;
 
+use crunchy::unroll;
 use num_traits::{FromPrimitive, MulAdd, Num, ToPrimitive};
 
 pub mod tables;
@@ -25,7 +26,7 @@ pub struct SisoSosFilter<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = 
     /// These correspond to a filter transfer function of:
     ///
     ///    H(z) = (b0 + b1*z^-1 + b2*z^-2) / (1 + a1*z^-1 + a2*z^-2)
-    /// 
+    ///
     /// Note that some SOS implementations (e.g. SciPy) use six coefficients,
     /// including a0, but here a0 is assumed to be unity, and is omitted to reduce memory usage.
     sos: [[T; 5]; SECTIONS],
@@ -38,20 +39,37 @@ impl<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T>> SisoSosFilter<SE
     pub fn update(&mut self, u: T) -> T {
         let mut input = u; // Input to each section
         let mut output = T::zero(); // Output of each section
-        for s in 0..SECTIONS {
-            let b0 = self.sos[s][0];
-            let b1 = self.sos[s][1];
-            let b2 = self.sos[s][2];
-            let a1 = self.sos[s][3];
-            let a2 = self.sos[s][4];
 
-            // Direct Form II Transposed implementation
-            output = b0 * input + self.z[s][0];
-            // Update the filter delays, they will be used the next time this function is called
-            self.z[s][0] = b1 * input - a1 * output + self.z[s][1];
-            self.z[s][1] = b2 * input - a2 * output;
-            // Cascaded sections: output of this section is input to next
-            input = output;
+        // `crunchy::unroll` requires a literal upper bound; use a conservative
+        // limit and let the assert catch unsupported configurations.
+        const {
+            assert!(
+                SECTIONS <= 8,
+                "SOS filters with SECTIONS > 8 are not supported"
+            );
+        }
+
+        // Unrolling this loop gives a ~5% speedup of the sos butter4 f64 benchmark
+        // on a i7-8550U CPU.
+        unroll! {
+            for s < 8 in 0..SECTIONS {
+                let b0 = self.sos[s][0];
+                let b1 = self.sos[s][1];
+                let b2 = self.sos[s][2];
+                let a1 = self.sos[s][3];
+                let a2 = self.sos[s][4];
+
+                // Direct Form II Transposed implementation
+                output = b0 * input + self.z[s][0];
+                // Update the filter delays, they will be used the next time this function is called
+                self.z[s][0] = b1 * input - a1 * output + self.z[s][1];
+                self.z[s][1] = b2 * input - a2 * output;
+                // Cascaded sections: output of this section is input to next
+                #[allow(unused_assignments)] // rustc warns because the assignment to input is unused on the last section
+                {
+                    input = output;
+                }
+            }
         }
         // Overall output of the filter is the output of the last sections
         self.y = output;
