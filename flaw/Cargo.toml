@@ -24,5 +24,12 @@ fma = []
 [lints.rust]
 unsafe_code = "forbid"
 
+[dev-dependencies]
+criterion = "0.7.0"
+
 [package.metadata.docs.rs]
 all-features = true
+
+[[bench]]
+name = "bench"
+harness = false
