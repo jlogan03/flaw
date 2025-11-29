@@ -1,4 +1,4 @@
-use num_traits::{FromPrimitive, MulAdd, Num};
+use num_traits::{FromPrimitive, MulAdd, Num, ToPrimitive};
 
 /// Single-Input-Single-Output, cascaded Second Order Sections filter.
 #[derive(Clone, Copy)]
@@ -62,7 +62,7 @@ impl<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T>> SisoSosFilter<SE
 
 impl<const SECTIONS: usize, T> SisoSosFilter<SECTIONS, T>
 where
-    T: Num + Copy + MulAdd<Output = T> + FromPrimitive, // FromPrimitive needed for conversion from f64 in SOS coef lookup tables.
+    T: Num + Copy + MulAdd<Output = T> + FromPrimitive + ToPrimitive, // FromPrimitive needed for conversion from f64 in SOS coef lookup tables.
 {
     /// Build a new low-pass with coefficients interpolated on baked tables.
     pub fn new_interpolated(
@@ -97,7 +97,42 @@ where
                 sos[sec][coeff] = T::from_f64(val_f64).ok_or("Conversion from f64 failed")?;
             }
         }
-        // TODO is scaling needed here for unity gain at DC?
+
+        // Correct the DC gain of the filter to 1.
+        // First, calculate the DC gain we'd get with the coefficients as is after interpolation.
+        let mut dc_gain: f64 = 1.0;
+        for section in sos.iter() {
+            let b0 = section[0].to_f64().ok_or("Conversion to f64 failed")?;
+            let b1 = section[1].to_f64().ok_or("Conversion to f64 failed")?;
+            let b2 = section[2].to_f64().ok_or("Conversion to f64 failed")?;
+            let a1 = section[3].to_f64().ok_or("Conversion to f64 failed")?;
+            let a2 = section[4].to_f64().ok_or("Conversion to f64 failed")?;
+            let sec_dc_gain = (b0 + b1 + b2) / (1.0 + a1 + a2);
+            dc_gain *= sec_dc_gain;
+        }
+        // Now scale the numerator coefficients to get unity gain at DC.
+        // Apply the required scaling in even parts to each section.
+        let correction = T::from_f64(dc_gain.powf(-1.0 / SECTIONS as f64)).ok_or("Conversion from f64 failed")?;
+        for section in sos.iter_mut() {
+            section[0] = section[0] * correction;
+            section[1] = section[1] * correction;
+            section[2] = section[2] * correction;
+        }
+        // Verify the DC gain after scaling.
+        dc_gain = 1.0;
+        for section in sos.iter() {
+            let b0 = section[0].to_f64().ok_or("Conversion to f64 failed")?;
+            let b1 = section[1].to_f64().ok_or("Conversion to f64 failed")?;
+            let b2 = section[2].to_f64().ok_or("Conversion to f64 failed")?;
+            let a1 = section[3].to_f64().ok_or("Conversion to f64 failed")?;
+            let a2 = section[4].to_f64().ok_or("Conversion to f64 failed")?;
+            let sec_dc_gain = (b0 + b1 + b2) / (1.0 + a1 + a2);
+            dc_gain *= sec_dc_gain;
+        }
+        if (dc_gain - 1.0).abs() > 1e-6 {
+            return Err("DC gain correction failed");
+        }
+
         Ok(Self::new(&sos))
 
     }
