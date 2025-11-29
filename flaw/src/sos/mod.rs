@@ -6,6 +6,14 @@ use num_traits::Float;
 
 use num_traits::{FromPrimitive, MulAdd, Num, ToPrimitive};
 
+pub mod tables;
+pub use tables::butter2::butter2;
+pub use tables::butter4::butter4;
+pub use tables::butter6::butter6;
+
+#[cfg(test)]
+mod test_helpers;
+
 /// Single-Input-Single-Output, cascaded Second Order Sections filter.
 #[derive(Clone, Copy)]
 pub struct SisoSosFilter<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T>> {
@@ -15,7 +23,9 @@ pub struct SisoSosFilter<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = 
     z: [[T; 2]; SECTIONS],
     /// SOS coefficients ordered as [b0, b1, b2, a1, a2] per section.
     /// These correspond to a filter transfer function of:
+    ///
     ///    H(z) = (b0 + b1*z^-1 + b2*z^-2) / (1 + a1*z^-1 + a2*z^-2)
+    /// 
     /// Note that some SOS implementations (e.g. SciPy) use six coefficients,
     /// including a0, but here a0 is assumed to be unity, and is omitted to reduce memory usage.
     sos: [[T; 5]; SECTIONS],
@@ -148,6 +158,7 @@ where
 #[cfg(test)]
 mod test {
     use super::SisoSosFilter;
+    use super::test_helpers::simulate_gain_sinewave;
 
     #[test]
     fn test_sos_butter_gain() {
@@ -178,23 +189,7 @@ mod test {
             (0.050, 7.057e-1), // gain should be ~1/sqrt(2) at the cutoff frequency
             (0.100, 5.643e-2), // gain should be << 1 well above the cutoff frequency
         ] {
-            // Setup
-            let n = 1024;
-            let input: Vec<f64> = (0..n)
-                .map(|i| (2.0 * std::f64::consts::PI * f * i as f64).sin())
-                .collect();
-            let original_rms = (input.iter().map(|v| v * v).sum::<f64>() / n as f64).sqrt();
-            let mut output = Vec::with_capacity(n);
-
-            // Action
-            filter.reset();
-            for &u in &input {
-                output.push(filter.update(u));
-            }
-
-            // Verification
-            let output_rms = (output.iter().map(|v| v * v).sum::<f64>() / n as f64).sqrt();
-            let gain = output_rms / original_rms;
+            let gain = simulate_gain_sinewave(&mut filter, f, 1024);
             let err = (gain - gain_expected).abs();
             assert!(
                 err < 0.01,

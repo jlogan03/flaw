@@ -73,7 +73,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::super::test_helpers::test_filter;
+    use super::super::super::test_helpers::test_filter;
     use super::{butter2, MAX_CUTOFF_RATIO_F32, MIN_CUTOFF_RATIO_F32, MAX_CUTOFF_RATIO_F64, MIN_CUTOFF_RATIO_F64, NUM_SECTIONS};
 
     #[test]

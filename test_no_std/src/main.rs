@@ -19,7 +19,7 @@ pub fn _start() -> ! {
     let mut filter = flaw::butter1(0.01).unwrap();
     let _ = filter.update(1.0);
     // Verify no-std compatibility of SOS Butterworth filter
-    let mut filter_sos = flaw::butter_sos::butter4::butter4::<f32>(0.01).unwrap();
+    let mut filter_sos = flaw::sos::butter4::<f32>(0.01).unwrap();
     let _ = filter_sos.update(1.0);
 
     loop {} // We don't actually run this, just compile it

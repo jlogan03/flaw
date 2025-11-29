@@ -5,13 +5,13 @@ pub mod fractional_delay;
 pub mod iir;
 pub mod median;
 pub mod sos;
-pub mod butter_sos;
 
 use crunchy::unroll;
 pub use fir::SisoFirFilter;
 pub use fractional_delay::polynomial_fractional_delay;
 pub use iir::SisoIirFilter;
 pub use median::MedianFilter;
+pub use sos::SisoSosFilter;
 
 pub mod generated;
 pub use generated::butter::butter1::butter1;
