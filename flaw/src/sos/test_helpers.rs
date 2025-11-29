@@ -1,3 +1,4 @@
+use core::ops::Neg;
 use num_traits::{FromPrimitive, MulAdd, Num, ToPrimitive};
 use crate::sos::SisoSosFilter;
 
@@ -5,7 +6,7 @@ use crate::sos::SisoSosFilter;
 /// `freq` is normalized to the sample frequency.
 pub fn simulate_gain_sinewave<const SECTIONS: usize, T>(filter: &mut SisoSosFilter<SECTIONS, T>, freq: f64, n: usize) -> f64 
 where
-    T: Num + Copy + MulAdd<Output = T> + FromPrimitive + ToPrimitive,
+    T: Num + Copy + MulAdd<Output = T> + Neg<Output = T> + FromPrimitive + ToPrimitive,
 {
     let input: Vec<T> = (0..n)
         .map(|i| T::from_f64((2.0 * std::f64::consts::PI * freq * i as f64).sin()).unwrap())
@@ -28,7 +29,7 @@ pub fn test_filter<const SECTIONS: usize, T>(
     max_cutoff_ratio: f64,
     butter_fn: fn(f64) -> Result<SisoSosFilter<SECTIONS, T>, &'static str>,
 ) where
-    T: Num + Copy + MulAdd<Output = T> + FromPrimitive + ToPrimitive,
+    T: Num + Copy + MulAdd<Output = T> + Neg<Output = T> + FromPrimitive + ToPrimitive,
 {
     let order = 2 * SECTIONS;
     // Check approximate attenuation at cutoff frequency at the maximum cutoff ratio; should be -3dB or 1/sqrt(2) magnitude

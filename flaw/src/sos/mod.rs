@@ -4,6 +4,7 @@
 #[cfg(not(feature = "std"))]
 use num_traits::Float;
 
+use core::ops::Neg;
 use crunchy::unroll;
 use num_traits::{FromPrimitive, MulAdd, Num, ToPrimitive};
 
@@ -17,7 +18,7 @@ mod test_helpers;
 
 /// Single-Input-Single-Output, cascaded Second Order Sections filter.
 #[derive(Clone, Copy)]
-pub struct SisoSosFilter<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T>> {
+pub struct SisoSosFilter<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T> + Neg<Output = T>> {
     /// Latest output
     y: T,
     /// Internal state: two filter delays for each section
@@ -32,7 +33,7 @@ pub struct SisoSosFilter<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = 
     sos: [[T; 5]; SECTIONS],
 }
 
-impl<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T>> SisoSosFilter<SECTIONS, T> {
+impl<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T> + Neg<Output = T>> SisoSosFilter<SECTIONS, T> {
     /// Evaluate the next estimated value based on the latest measurement
     /// in 9N floating-point ops for a filter with N sections (order up to 2*N).
     #[inline]
@@ -59,11 +60,25 @@ impl<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T>> SisoSosFilter<SE
                 let a1 = self.sos[s][3];
                 let a2 = self.sos[s][4];
 
-                // Direct Form II Transposed implementation
-                output = b0 * input + self.z[s][0];
-                // Update the filter delays, they will be used the next time this function is called
-                self.z[s][0] = b1 * input - a1 * output + self.z[s][1];
-                self.z[s][1] = b2 * input - a2 * output;
+                #[cfg(not(feature = "fma"))]
+                {
+                    // Direct Form II Transposed implementation
+                    output = b0 * input + self.z[s][0];
+                    // Update the filter delays, they will be used the next time this function is called
+                    self.z[s][0] = b1 * input - a1 * output + self.z[s][1];
+                    self.z[s][1] = b2 * input - a2 * output;
+                }
+
+                // The FMA implementation is ~40% faster, with target-cpu=x86-64-v3 on a i7-8550U CPU.
+                #[cfg(feature = "fma")]
+                {
+                    // Direct Form II Transposed implementation
+                    output = b0.mul_add(input, self.z[s][0]);  // b0 * input + self.z[s][0]
+                    // Update the filter delays, they will be used the next time this function is called
+                    self.z[s][0] = b1.mul_add(input, a1.mul_add(-output, self.z[s][1])); // b1 * input - a1 * output + self.z[s][1]
+                    self.z[s][1] = b2.mul_add(input, -a2 * output); // b2 * input - a2 * output
+                }
+
                 // Cascaded sections: output of this section is input to next
                 #[allow(unused_assignments)] // rustc warns because the assignment to input is unused on the last section
                 {
@@ -96,7 +111,7 @@ impl<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T>> SisoSosFilter<SE
 
 impl<const SECTIONS: usize, T> SisoSosFilter<SECTIONS, T>
 where
-    T: Num + Copy + MulAdd<Output = T> + FromPrimitive + ToPrimitive, // FromPrimitive needed for conversion from f64 in SOS coef lookup tables.
+    T: Num + Copy + MulAdd<Output = T> + Neg<Output = T> + FromPrimitive + ToPrimitive, // FromPrimitive needed for conversion from f64 in SOS coef lookup tables.
 {
     /// Build a new low-pass with coefficients interpolated on baked tables.
     pub fn new_interpolated(
