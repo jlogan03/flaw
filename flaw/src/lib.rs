@@ -4,12 +4,15 @@ pub mod fir;
 pub mod fractional_delay;
 pub mod iir;
 pub mod median;
+pub mod sos;
 
+use core::ops::{Index, IndexMut};
 use crunchy::unroll;
 pub use fir::SisoFirFilter;
 pub use fractional_delay::polynomial_fractional_delay;
 pub use iir::SisoIirFilter;
 pub use median::MedianFilter;
+pub use sos::SisoSosFilter;
 
 pub mod generated;
 pub use generated::butter::butter1::butter1;
@@ -64,6 +67,21 @@ impl<T: Copy + Num + MulAdd<Output = T>, const N: usize> AlignedArray<T, N> {
         }
 
         acc
+    }
+}
+
+impl<T, const N: usize> Index<usize> for AlignedArray<T, N> {
+    type Output = T;
+    #[inline]
+    fn index(&self, idx: usize) -> &Self::Output {
+        &self.0[idx]
+    }
+}
+
+impl<T, const N: usize> IndexMut<usize> for AlignedArray<T, N> {
+    #[inline]
+    fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
+        &mut self.0[idx]
     }
 }
 
@@ -124,7 +142,7 @@ mod test {
     fn test_initialize() {
         let e = core::f64::consts::E as f32;
         let mut f = super::butter2(0.2).unwrap();
-        f.initialize(e);
+        f.set_steady_state(e);
         assert!((e - f.update(e)).abs() / e < 1e-6);
     }
 }

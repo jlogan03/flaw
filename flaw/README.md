@@ -1,4 +1,5 @@
 # flaw
+
 Embedded signal filtering, no-std and no-alloc compatible.
 
 This library provides a simple method for initializing and updating single-input,
@@ -21,6 +22,10 @@ as be formulated and initialized in an embedded environment.
   * General IIR filter using state-space canonical form
   * Interpolated low-pass filters w/ gain error correction
   * Baked coefficients for Butterworth filters of order 1-6
+* SOS representation of IRR filters (generic number type)
+  * General IRR filter using cascaded second order sections
+  * Interpolated low-pass filters w/ gain error correction
+  * Baked coefficients for Butterworth filters of order 2, 4 and 6 for f32 and f64
 * FIR (generic number type)
   * General FIR filter
   * Lagrange polynomial fractional-delay filter construction
@@ -38,7 +43,7 @@ let mut filter = flaw::butter2(cutoff_ratio).unwrap();  // Errors if extrapolati
 // Initialize the internal state of the filter
 // to match the steady-state associated with some input value.
 let initial_steady_measurement = 1.57;  // Some number
-filter.initialize(initial_steady_measurement);
+filter.set_steady_state(initial_steady_measurement);
 
 // Update the filter with a new raw measurement
 let measurement = 0.3145; // Some number

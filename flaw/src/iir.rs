@@ -150,10 +150,10 @@ impl<const ORDER: usize> SisoIirFilter<ORDER> {
         Ok(Self::new(&a, &c, d))
     }
 
-    /// Initialize filter internal state to the steady value
+    /// Set filter internal state to the steady value
     /// achieved for input `u`. For filters with unity steady-state gain,
     /// this will also produce an output reading of `u`.
-    pub fn initialize(&mut self, u: f32) {
+    pub fn set_steady_state(&mut self, u: f32) {
         let asum: f32 = self.a.0.iter().sum();
         let xs = u / (1.0 - asum); // Scalar constant value for `X` entries
         self.x = Ring::new(xs);
