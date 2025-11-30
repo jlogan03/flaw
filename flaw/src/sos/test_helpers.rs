@@ -1,24 +1,38 @@
+use crate::sos::SisoSosFilter;
 use core::ops::Neg;
 use num_traits::{FromPrimitive, MulAdd, Num, ToPrimitive};
-use crate::sos::SisoSosFilter;
 
 /// Determine the gain of a filter at a given frequency by simulating its response to a sinewave.
 /// `freq` is normalized to the sample frequency.
-pub fn simulate_gain_sinewave<const SECTIONS: usize, T>(filter: &mut SisoSosFilter<SECTIONS, T>, freq: f64, n: usize) -> f64 
+pub fn simulate_gain_sinewave<const SECTIONS: usize, T>(
+    filter: &mut SisoSosFilter<SECTIONS, T>,
+    freq: f64,
+    n: usize,
+) -> f64
 where
     T: Num + Copy + MulAdd<Output = T> + Neg<Output = T> + FromPrimitive + ToPrimitive,
 {
     let input: Vec<T> = (0..n)
         .map(|i| T::from_f64((2.0 * std::f64::consts::PI * freq * i as f64).sin()).unwrap())
         .collect();
-    let original_rms = (input.iter().map(|&v| (v * v).to_f64().unwrap()).sum::<f64>() / n as f64).sqrt();
+    let original_rms = (input
+        .iter()
+        .map(|&v| (v * v).to_f64().unwrap())
+        .sum::<f64>()
+        / n as f64)
+        .sqrt();
     let mut output = Vec::with_capacity(n);
     filter.reset();
     for &u in &input {
         output.push(filter.update(u));
     }
     filter.reset();
-    let output_rms = (output.iter().map(|&v| (v * v).to_f64().unwrap()).sum::<f64>() / n as f64).sqrt();
+    let output_rms = (output
+        .iter()
+        .map(|&v| (v * v).to_f64().unwrap())
+        .sum::<f64>()
+        / n as f64)
+        .sqrt();
     output_rms / original_rms
 }
 
@@ -46,7 +60,10 @@ pub fn test_filter<const SECTIONS: usize, T>(
         filtermin.update(T::from_f64(1.0).unwrap());
     });
     let step_min_final = filtermin.update(T::from_f64(1.0).unwrap());
-    println!("order {order} step min final {:?}", step_min_final.to_f64().unwrap());
+    println!(
+        "order {order} step min final {:?}",
+        step_min_final.to_f64().unwrap()
+    );
     let step_min_rel_err = (step_min_final.to_f64().unwrap() - 1.0).abs() / 1.0;
     println!("order {order} step min rel err {step_min_rel_err}");
     assert!(step_min_rel_err < 1e-4);

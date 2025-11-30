@@ -20,7 +20,10 @@ mod test_helpers;
 
 /// Single-Input-Single-Output, cascaded Second Order Sections filter.
 #[derive(Clone, Copy)]
-pub struct SisoSosFilter<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T> + Neg<Output = T>> {
+pub struct SisoSosFilter<
+    const SECTIONS: usize,
+    T: Num + Copy + MulAdd<Output = T> + Neg<Output = T>,
+> {
     /// Latest output
     y: T,
     /// Internal state: two filter delays for each section
@@ -135,8 +138,13 @@ where
         }
 
         // Try updating the filter and verify that the output matches the input
-        debug_assert!( // use debug_assert so that release builds can be panic-free
-            (self.update(u) - u).to_f64().ok_or("Conversion to f64 failed")?.abs() < 1e-6,
+        debug_assert!(
+            // use debug_assert so that release builds can be panic-free
+            (self.update(u) - u)
+                .to_f64()
+                .ok_or("Conversion to f64 failed")?
+                .abs()
+                < 1e-6,
         );
 
         Ok(())
@@ -282,9 +290,9 @@ mod test {
         // calculated with scipy.signal.freqz_sos in scripts/sos_test.py.
         // f is frequency normalized to the sample frequency.
         for (f, gain_expected) in [
-            (0.010, 1.000),    // gain should be 1 well below the cutoff frequency
+            (0.010, 1.000),                // gain should be 1 well below the cutoff frequency
             (0.050, 1.0 / f64::sqrt(2.0)), // gain should be ~1/sqrt(2) at the cutoff frequency
-            (0.100, 5.643e-2), // gain should be << 1 well above the cutoff frequency
+            (0.100, 5.643e-2),             // gain should be << 1 well above the cutoff frequency
         ] {
             let gain = simulate_gain_sinewave(&mut filter, f, 1024);
             let err = (gain - gain_expected).abs();
@@ -294,7 +302,6 @@ mod test {
             );
         }
     }
-
 
     #[test]
     fn test_set_steady_state() {
@@ -321,10 +328,7 @@ mod test {
             filter.set_steady_state(u).unwrap();
             let y = filter.update(u);
             let err = (y - u).abs();
-            assert!(
-                err < 1e-6,
-                "u = {u}: y = {y}, expected {u}, err = {err}"
-            );
+            assert!(err < 1e-6, "u = {u}: y = {y}, expected {u}, err = {err}");
         }
     }
 }
