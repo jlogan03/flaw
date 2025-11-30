@@ -6,6 +6,7 @@ pub mod iir;
 pub mod median;
 pub mod sos;
 
+use core::ops::{Index, IndexMut};
 use crunchy::unroll;
 pub use fir::SisoFirFilter;
 pub use fractional_delay::polynomial_fractional_delay;
@@ -66,6 +67,21 @@ impl<T: Copy + Num + MulAdd<Output = T>, const N: usize> AlignedArray<T, N> {
         }
 
         acc
+    }
+}
+
+impl<T, const N: usize> Index<usize> for AlignedArray<T, N> {
+    type Output = T;
+    #[inline]
+    fn index(&self, idx: usize) -> &Self::Output {
+        &self.0[idx]
+    }
+}
+
+impl<T, const N: usize> IndexMut<usize> for AlignedArray<T, N> {
+    #[inline]
+    fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
+        &mut self.0[idx]
     }
 }
 

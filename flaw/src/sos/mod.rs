@@ -13,6 +13,8 @@ pub use tables::butter2::butter2;
 pub use tables::butter4::butter4;
 pub use tables::butter6::butter6;
 
+use crate::AlignedArray;
+
 #[cfg(test)]
 mod test_helpers;
 
@@ -22,7 +24,7 @@ pub struct SisoSosFilter<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = 
     /// Latest output
     y: T,
     /// Internal state: two filter delays for each section
-    z: [[T; 2]; SECTIONS],
+    z: AlignedArray<[T; 2], SECTIONS>,
     /// SOS coefficients ordered as [b0, b1, b2, a1, a2] per section.
     /// These correspond to a filter transfer function of:
     ///
@@ -30,7 +32,7 @@ pub struct SisoSosFilter<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = 
     ///
     /// Note that some SOS implementations (e.g. SciPy) use six coefficients,
     /// including a0, but here a0 is assumed to be unity, and is omitted to reduce memory usage.
-    sos: [[T; 5]; SECTIONS],
+    sos: AlignedArray<[T; 5], SECTIONS>, // Using AlignedArray did not measurably change performance on an i7-8550U CPU, but might help on other platforms
 }
 
 impl<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T> + Neg<Output = T>> SisoSosFilter<SECTIONS, T> {
@@ -94,7 +96,7 @@ impl<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T> + Neg<Output = T>
     /// Reset internal state to zero.
     pub fn reset(&mut self) {
         self.y = T::zero();
-        self.z = [[T::zero(); 2]; SECTIONS];
+        self.z = AlignedArray([[T::zero(); 2]; SECTIONS]);
     }
 
     pub fn new(sos: &[[T; 5]]) -> Self {
@@ -103,8 +105,8 @@ impl<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T> + Neg<Output = T>
 
         Self {
             y: T::zero(),
-            z: [[T::zero(); 2]; SECTIONS],
-            sos: sos_,
+            z: AlignedArray([[T::zero(); 2]; SECTIONS]),
+            sos: AlignedArray(sos_),
         }
     }
 }
@@ -219,7 +221,7 @@ mod test {
         // f is frequency normalized to the sample frequency.
         for (f, gain_expected) in [
             (0.010, 1.000),    // gain should be 1 well below the cutoff frequency
-            (0.050, 7.057e-1), // gain should be ~1/sqrt(2) at the cutoff frequency
+            (0.050, 1.0 / f64::sqrt(2.0)), // gain should be ~1/sqrt(2) at the cutoff frequency
             (0.100, 5.643e-2), // gain should be << 1 well above the cutoff frequency
         ] {
             let gain = simulate_gain_sinewave(&mut filter, f, 1024);
