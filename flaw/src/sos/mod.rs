@@ -35,7 +35,10 @@ pub struct SisoSosFilter<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = 
     sos: AlignedArray<[T; 5], SECTIONS>, // Using AlignedArray did not measurably change performance on an i7-8550U CPU, but might help on other platforms
 }
 
-impl<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T> + Neg<Output = T>> SisoSosFilter<SECTIONS, T> {
+impl<const SECTIONS: usize, T> SisoSosFilter<SECTIONS, T>
+where
+    T: Num + Copy + MulAdd<Output = T> + Neg<Output = T> + FromPrimitive + ToPrimitive, // FromPrimitive needed for conversion from f64 in SOS coef lookup tables.
+{
     /// Evaluate the next estimated value based on the latest measurement
     /// in 9N floating-point ops for a filter with N sections (order up to 2*N).
     #[inline]
@@ -99,6 +102,46 @@ impl<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T> + Neg<Output = T>
         self.z = AlignedArray([[T::zero(); 2]; SECTIONS]);
     }
 
+    /// Set internal state to correspond to a steady-state input `u`.
+    /// After calling this method, the next call to `update(u)` should
+    /// return `u` (within floating-point error).
+    pub fn set_steady_state(&mut self, u: T) -> Result<(), &'static str> {
+        let mut input = u;
+        for s in 0..SECTIONS {
+            let b0 = self.sos[s][0];
+            let b1 = self.sos[s][1];
+            let b2 = self.sos[s][2];
+            let a1 = self.sos[s][3];
+            let a2 = self.sos[s][4];
+
+            // Calculate the steady-state output of this section
+            let input_f64 = input.to_f64().ok_or("Conversion to f64 failed")?;
+            let section_f64: [f64; 5] = [
+                b0.to_f64().ok_or("Conversion to f64 failed")?,
+                b1.to_f64().ok_or("Conversion to f64 failed")?,
+                b2.to_f64().ok_or("Conversion to f64 failed")?,
+                a1.to_f64().ok_or("Conversion to f64 failed")?,
+                a2.to_f64().ok_or("Conversion to f64 failed")?,
+            ];
+            let ss_gain = steady_state_gain_sos(&section_f64);
+            let output: T = T::from_f64(input_f64 * ss_gain).ok_or("Conversion from f64 failed")?;
+
+            // Set the internal states based on the steady state input and output of this section
+            self.z[s][1] = b2 * input - a2 * output;
+            self.z[s][0] = b1 * input - a1 * output + self.z[s][1];
+
+            // Cascaded sections: output of this section is input to next
+            input = output;
+        }
+
+        // Try updating the filter and verify that the output matches the input
+        debug_assert!( // use debug_assert so that release builds can be panic-free
+            (self.update(u) - u).to_f64().ok_or("Conversion to f64 failed")?.abs() < 1e-6,
+        );
+
+        Ok(())
+    }
+
     pub fn new(sos: &[[T; 5]]) -> Self {
         let mut sos_ = [[T::zero(); 5]; SECTIONS];
         sos_.copy_from_slice(sos);
@@ -109,12 +152,7 @@ impl<const SECTIONS: usize, T: Num + Copy + MulAdd<Output = T> + Neg<Output = T>
             sos: AlignedArray(sos_),
         }
     }
-}
 
-impl<const SECTIONS: usize, T> SisoSosFilter<SECTIONS, T>
-where
-    T: Num + Copy + MulAdd<Output = T> + Neg<Output = T> + FromPrimitive + ToPrimitive, // FromPrimitive needed for conversion from f64 in SOS coef lookup tables.
-{
     /// Build a new low-pass with coefficients interpolated on baked tables.
     pub fn new_interpolated(
         cutoff_ratio: f64,
@@ -189,6 +227,30 @@ where
     }
 }
 
+/// Calculate the steady-state gain of a single Second Order Section.
+pub fn steady_state_gain_sos(section: &[f64; 5]) -> f64 {
+    let b0 = section[0];
+    let b1 = section[1];
+    let b2 = section[2];
+    let a1 = section[3];
+    let a2 = section[4];
+
+    // The formula for steady state gain is the z-transform evaluated at z = 1.
+    // Derivation: the steady state gain is the final value of the step response.
+    // Let H(z) be the z-transform of the second order section.
+    // The z-transform of the step response is:
+    //   Y(z) = (1 / (1 - z^-1)) * H(z)
+    // The final value theorem for z-transforms states:
+    //   lim_{n->inf} y[n] = lim_{z->1} (z - 1) * Y(z)
+    // Applying this to the step response gives:
+    //   lim_{n->inf} y[n] = lim_{z->1} (z - 1) / (1 - z^-1) * H(z)
+    // The limit of the first term is 1, so we have:
+    //   lim_{n->inf} y[n] = H(1)
+    // assuming that H(z) is stable so the limit exists.
+    // See https://en.wikipedia.org/wiki/Z-transform#Properties
+    (b0 + b1 + b2) / (1.0 + a1 + a2)
+}
+
 #[cfg(feature = "std")]
 #[cfg(test)]
 mod test {
@@ -229,6 +291,39 @@ mod test {
             assert!(
                 err < 0.01,
                 "f = {f}: gain = {gain}, expected {gain_expected}, err = {err}"
+            );
+        }
+    }
+
+
+    #[test]
+    fn test_set_steady_state() {
+        // Coefficients for a 4th order lowpass Butterworth filter with fc/fs = 0.05.
+        // Coefficients computed with scipy.signal.butter.
+        let mut filter = SisoSosFilter::<2, f64>::new(&[
+            [
+                4.16599204e-04,
+                8.33198409e-04,
+                4.16599204e-04,
+                -1.47967422e+00,
+                5.55821543e-01,
+            ],
+            [
+                1.00000000e+00,
+                2.00000000e+00,
+                1.00000000e+00,
+                -1.70096433e+00,
+                7.88499740e-01,
+            ],
+        ]);
+
+        for u in [-1.1, 0.0, 0.5, 1.0, 5.59823] {
+            filter.set_steady_state(u).unwrap();
+            let y = filter.update(u);
+            let err = (y - u).abs();
+            assert!(
+                err < 1e-6,
+                "u = {u}: y = {y}, expected {u}, err = {err}"
             );
         }
     }
