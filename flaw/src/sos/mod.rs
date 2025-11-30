@@ -105,11 +105,12 @@ where
         self.z = AlignedArray([[T::zero(); 2]; SECTIONS]);
     }
 
-    /// Set internal state to correspond to a steady-state input `u`.
-    /// After calling this method, the next call to `update(u)` should
-    /// return `u` (within floating-point error).
+    /// Set filter internal state to the steady value
+    /// achieved for input `u`. For filters with unity steady-state gain,
+    /// this will also produce an output reading of `u`.
     pub fn set_steady_state(&mut self, u: T) -> Result<(), &'static str> {
         let mut input = u;
+        let mut overall_ss_gain = 1.0;
         for s in 0..SECTIONS {
             let b0 = self.sos[s][0];
             let b1 = self.sos[s][1];
@@ -127,6 +128,7 @@ where
                 a2.to_f64().ok_or("Conversion to f64 failed")?,
             ];
             let ss_gain = steady_state_gain_sos(&section_f64);
+            overall_ss_gain *= ss_gain; // accumulate the gain of each section
             let output: T = T::from_f64(input_f64 * ss_gain).ok_or("Conversion from f64 failed")?;
 
             // Set the internal states based on the steady state input and output of this section
@@ -137,15 +139,17 @@ where
             input = output;
         }
 
-        // Try updating the filter and verify that the output matches the input
-        debug_assert!(
-            // use debug_assert so that release builds can be panic-free
-            (self.update(u) - u)
-                .to_f64()
-                .ok_or("Conversion to f64 failed")?
-                .abs()
-                < 1e-6,
-        );
+        if (overall_ss_gain - 1.0).abs() < 1e-6 {
+            // Try updating the filter and verify that the output matches the input
+            debug_assert!(
+                // use debug_assert so that release builds can be panic-free
+                (self.update(u) - u)
+                    .to_f64()
+                    .ok_or("Conversion to f64 failed")?
+                    .abs()
+                    < 1e-6,
+            );
+        }
 
         Ok(())
     }

@@ -142,7 +142,7 @@ mod test {
     fn test_initialize() {
         let e = core::f64::consts::E as f32;
         let mut f = super::butter2(0.2).unwrap();
-        f.initialize(e);
+        f.set_steady_state(e);
         assert!((e - f.update(e)).abs() / e < 1e-6);
     }
 }
