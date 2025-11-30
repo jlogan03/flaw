@@ -41,12 +41,10 @@ pub trait CutoffRatioBounds {
     }
 }
 
-
 impl CutoffRatioBounds for f32 {
     const MIN_CUTOFF_RATIO: f64 = MIN_CUTOFF_RATIO_F32;
     const MAX_CUTOFF_RATIO: f64 = MAX_CUTOFF_RATIO_F32;
 }
-
 
 impl CutoffRatioBounds for f64 {
     const MIN_CUTOFF_RATIO: f64 = MIN_CUTOFF_RATIO_F64;
@@ -63,7 +61,13 @@ impl CutoffRatioBounds for f64 {
 /// * f64: 0.0005 to 0.4000
 pub fn butter4<T>(cutoff_ratio: f64) -> Result<SisoSosFilter<NUM_SECTIONS, T>, &'static str>
 where
-    T: Num + Copy + MulAdd<Output = T> + Neg<Output = T> + FromPrimitive + ToPrimitive + CutoffRatioBounds,
+    T: Num
+        + Copy
+        + MulAdd<Output = T>
+        + Neg<Output = T>
+        + FromPrimitive
+        + ToPrimitive
+        + CutoffRatioBounds,
 {
     if !T::is_within_bounds(cutoff_ratio) {
         return Err("cutoff_ratio out of bounds for provided float type");
@@ -72,33 +76,23 @@ where
     let sos_tables = SOS_TABLES
         .each_ref()
         .map(|sec| sec.each_ref().map(|coeffs| &coeffs[..]));
-    SisoSosFilter::new_interpolated(
-        cutoff_ratio,
-        &LOG10_CUTOFF_RATIOS,
-        sos_tables,
-    )
+    SisoSosFilter::new_interpolated(cutoff_ratio, &LOG10_CUTOFF_RATIOS, sos_tables)
 }
 
 #[cfg(test)]
 mod tests {
     use super::super::super::test_helpers::test_filter;
-    use super::{butter4, MAX_CUTOFF_RATIO_F32, MIN_CUTOFF_RATIO_F32, MAX_CUTOFF_RATIO_F64, MIN_CUTOFF_RATIO_F64, NUM_SECTIONS};
-
+    use super::{
+        MAX_CUTOFF_RATIO_F32, MAX_CUTOFF_RATIO_F64, MIN_CUTOFF_RATIO_F32, MIN_CUTOFF_RATIO_F64,
+        NUM_SECTIONS, butter4,
+    };
     #[test]
     fn test_butter4_f32() {
-        test_filter::<NUM_SECTIONS, f32>(
-            MIN_CUTOFF_RATIO_F32,
-            MAX_CUTOFF_RATIO_F32,
-            butter4,
-        );
+        test_filter::<NUM_SECTIONS, f32>(MIN_CUTOFF_RATIO_F32, MAX_CUTOFF_RATIO_F32, butter4);
     }
 
     #[test]
     fn test_butter4_f64() {
-        test_filter::<NUM_SECTIONS, f64>(
-            MIN_CUTOFF_RATIO_F64,
-            MAX_CUTOFF_RATIO_F64,
-            butter4,
-        );
+        test_filter::<NUM_SECTIONS, f64>(MIN_CUTOFF_RATIO_F64, MAX_CUTOFF_RATIO_F64, butter4);
     }
 }

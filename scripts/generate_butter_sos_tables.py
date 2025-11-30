@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 from scipy.signal import butter
 import numpy as np
 from matplotlib import pyplot as plt
@@ -48,9 +49,8 @@ pub trait CutoffRatioBounds {
         cutoff_ratio >= Self::MIN_CUTOFF_RATIO && cutoff_ratio <= Self::MAX_CUTOFF_RATIO
     }
 }
-
 """
-    rust_source += "\n".join(
+    rust_source += "".join(
 f"""
 impl CutoffRatioBounds for f{b} {{
     const MIN_CUTOFF_RATIO: f64 = MIN_CUTOFF_RATIO_F{b};
@@ -69,7 +69,13 @@ impl CutoffRatioBounds for f{b} {{
 /// * f64: {min_cutoff_f64:.4f} to {max_cutoff:.4f}
 pub fn butter{order}<T>(cutoff_ratio: f64) -> Result<SisoSosFilter<NUM_SECTIONS, T>, &'static str>
 where
-    T: Num + Copy + MulAdd<Output = T> + Neg<Output = T> + FromPrimitive + ToPrimitive + CutoffRatioBounds,
+    T: Num
+        + Copy
+        + MulAdd<Output = T>
+        + Neg<Output = T>
+        + FromPrimitive
+        + ToPrimitive
+        + CutoffRatioBounds,
 {{
     if !T::is_within_bounds(cutoff_ratio) {{
         return Err("cutoff_ratio out of bounds for provided float type");
@@ -78,27 +84,21 @@ where
     let sos_tables = SOS_TABLES
         .each_ref()
         .map(|sec| sec.each_ref().map(|coeffs| &coeffs[..]));
-    SisoSosFilter::new_interpolated(
-        cutoff_ratio,
-        &LOG10_CUTOFF_RATIOS,
-        sos_tables,
-    )
+    SisoSosFilter::new_interpolated(cutoff_ratio, &LOG10_CUTOFF_RATIOS, sos_tables)
 }}
 
 #[cfg(test)]
 mod tests {{
     use super::super::super::test_helpers::test_filter;
-    use super::{{butter{order}, MAX_CUTOFF_RATIO_F32, MIN_CUTOFF_RATIO_F32, MAX_CUTOFF_RATIO_F64, MIN_CUTOFF_RATIO_F64, NUM_SECTIONS}};
-
+    use super::{{
+        MAX_CUTOFF_RATIO_F32, MAX_CUTOFF_RATIO_F64, MIN_CUTOFF_RATIO_F32, MIN_CUTOFF_RATIO_F64,
+        NUM_SECTIONS, butter{order},
+    }};
 """
     rust_source += "\n\n".join(
 f"""    #[test]
     fn test_butter{order}_f{b}() {{
-        test_filter::<NUM_SECTIONS, f{b}>(
-            MIN_CUTOFF_RATIO_F{b},
-            MAX_CUTOFF_RATIO_F{b},
-            butter{order},
-        );
+        test_filter::<NUM_SECTIONS, f{b}>(MIN_CUTOFF_RATIO_F{b}, MAX_CUTOFF_RATIO_F{b}, butter{order});
     }}""" for b in ("32", "64"))
     rust_source += "\n}\n"
 
@@ -175,5 +175,9 @@ with open(rust_tables_path / "mod.rs", "w") as rust_mod_file:
     for (sections, _, _) in sections_and_cutoffs:
         order = 2 * sections
         rust_mod_file.write(f"pub mod butter{order};\n")
+
+# Run the Rust formatter
+# This will format the whole crate, not just the generated files, but you probably want that anyway.
+subprocess.run(["cargo", "fmt"], cwd=here.parent, check=True)
 
 plt.show()
