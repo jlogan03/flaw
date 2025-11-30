@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.6.0 - 2025-11-29
+
+## Added
+* `sos::SisoSosFilter`, an implementation of cascaded second order sections
+  * includes `new_interpolated` initializer, which interpolates the SOS coefficients versus cutoff ratio from a lookup table
+  * generic over `f32` and `f64`
+  * FMA and non-FMA implementations, configured by the existing `fma` feature
+* functions to generate SOS Butterworth lowpass filters from lookup tables: `sos::{butter2, butter4, butter6}`
+  * provides orders 2, 4 and 6 for `f32` and `f64`
+  * `cutoff_ratio` region of validity is enforced and tested for each combination of filter order and float type
+  * `cutoff_ratio` region of validity is larger than existing Butterworth implementation for orders 4 and up
+    * e.g. for order 4, `f32`: old 0.032, new 0.005
+  * SOS *does not* improve region of validity for order 2 filter
+* python script to autogenerate the SOS Butterworth lookup tables: `scripts/generate_butter_sos_tables.py`
+* benchmarking with criterion, and a benchmark of `sos::butter4::<f64>`
+
+## Changed
+
+* !Renamed `flaw::SisoIirFilter::initialize` to `set_steady_state`
+
 ## 0.5.0 - 2025-10-19
 
 Using FMA to accelerate and reduce roundoff error in dot products.
