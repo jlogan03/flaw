@@ -1,8 +1,16 @@
 # Changelog
 
+## 0.6.1 - 2026-01-04
+
+### Changed
+
+* Update dep versions
+* Cascade `fma` feature to `interpn`
+* Benchmark more filter configurations
+
 ## 0.6.0 - 2025-11-29
 
-## Added
+### Added
 * `sos::SisoSosFilter`, an implementation of cascaded second order sections
   * includes `new_interpolated` initializer, which interpolates the SOS coefficients versus cutoff ratio from a lookup table
   * generic over `f32` and `f64`
@@ -16,7 +24,7 @@
 * python script to autogenerate the SOS Butterworth lookup tables: `scripts/generate_butter_sos_tables.py`
 * benchmarking with criterion, and a benchmark of `sos::butter4::<f64>`
 
-## Changed
+### Changed
 
 * !Renamed `flaw::SisoIirFilter::initialize` to `set_steady_state`
 
