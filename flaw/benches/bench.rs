@@ -25,7 +25,9 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 butter2_bank
                     .iter_mut()
                     .zip(input.iter())
-                    .for_each(|(f, v)| {f.update(*v);}),
+                    .for_each(|(f, v)| {
+                        f.update(*v);
+                    }),
             )
         })
     });
@@ -46,7 +48,9 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 frac_delay3_bank
                     .iter_mut()
                     .zip(input.iter())
-                    .for_each(|(f, v)| {f.update(*v);}),
+                    .for_each(|(f, v)| {
+                        f.update(*v);
+                    }),
             )
         })
     });
